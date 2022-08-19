@@ -1,0 +1,6 @@
+*.db
+dashboard_env/
+notes.txt
+__pycache__/
+load_analyse_data.py
+*.csv

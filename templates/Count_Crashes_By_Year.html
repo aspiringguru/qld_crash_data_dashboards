@@ -1,0 +1,55 @@
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Qld Crash Data.</title>
+    <!--<link rel="stylesheet" href="style.css"> -->
+    <!-- <script src='https://cdn.plot.ly/plotly-2.12.1.min.js'></script>  -->
+    <!-- <script src="https://d3js.org/d3.v4.min.js"></script> -->
+    <script src='/static/plotly-2.12.1.min.js'></script>
+    <script src="/static/d3.v4.min.js"></script>
+    <style>
+      .chart {
+        width:50%;height:50%;
+      }
+    </style>
+  </head>
+  <body>
+    <div id='mychart1' class='chart'>loading data, plotting chart here.</div>
+    Data Source : <a href="https://www.data.qld.gov.au/dataset/crash-data-from-queensland-roads/resource/dd13a889-2a48-4b91-8c64-59f824ed3d2c">Qld Crash Data</a>
+  <script>
+    d3.json("/get_Count_Crashes_By_Year", function(data) {
+      //console.log("data\n", data)
+      //console.log("data.data\n", data.data)
+      //console.log("data.data.length\n", data.data.length)
+      x=[]
+      y=[]
+      for (let i = 0; i < data.data.length; i++) {
+        //console.log(data.data[i])
+        x.push(data.data[i][0])
+        y.push(data.data[i][1])
+      }
+      //console.log("x:", x)
+      //console.log("y:", y)
+      plot_data = [
+        {
+          x: x,
+          y: y,
+          type: 'bar'
+        }
+      ];
+      layout = {
+        title: { text:'Qld Crash data', },
+          xaxis: {
+            title: { text: 'Year', },
+          },
+          yaxis: {
+            title: { text: 'Total Crashes Recorded per year.', }
+          }
+      };
+      document.getElementById("mychart1").innerHTML = ""
+      //nb: Plotly.newPlot has to be the last action within d3.json.
+      Plotly.newPlot('mychart1', plot_data,  layout);
+    })
+  </script>
+  </body>
+</html>

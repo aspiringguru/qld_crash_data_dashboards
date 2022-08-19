@@ -1,0 +1,277 @@
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Qld Crash Data.</title>
+    <!--<link rel="stylesheet" href="style.css"> -->
+    <!-- <script src='https://cdn.plot.ly/plotly-2.12.1.min.js'></script>  -->
+    <!-- <script src="https://d3js.org/d3.v4.min.js"></script> -->
+    <script src='/static/plotly-2.12.1.min.js'></script>
+    <script src="/static/d3.v4.min.js"></script>
+    <style>
+      .chart {
+        width:90%;height:70%;
+      }
+    </style>
+  </head>
+  <body>
+    <select id="selectYear" onchange="select_year()">
+      <option value="" selected>Select Year</option>
+    </select>
+    <div>
+      <form onchange="select_vehicle_types()">
+        <input type="checkbox" id="bicycles" name="bicycles" value="1" checked>
+        <label for="bicycles">Bicycles</label><br>
+        <input type="checkbox" id="buses" name="buses" value="1" checked>
+        <label for="buses">Buses</label><br>
+        <input type="checkbox" id="cars" name="cars" value="1" checked>
+        <label for="cars">Cars</label><br>
+        <input type="checkbox" id="motorcycles_mopeds" name="motorcycles_mopeds" value="1" checked>
+        <label for="motorcycles_mopeds">Motorcycles & Mopeds</label><br>
+        <input type="checkbox" id="pedestrians" name="pedestrians" value="1" checked>
+        <label for="pedestrians">Pedestrians</label><br>
+        <input type="checkbox" id="trucks" name="trucks" value="1" checked>
+        <label for="trucks">Trucks</label><br>
+        <input type="checkbox" id="other" name="other" value="1" checked>
+        <label for="other">Other</label><br>
+      </form>
+    </div>
+    <div id='mychart1' class='chart'>Select year and vehicle categories to plot. (chart will plot and update)</div>
+    Data Source : <a href="https://www.data.qld.gov.au/dataset/crash-data-from-queensland-roads/resource/f999155b-37f7-48aa-b5dd-644838130b0b">Qld Crash Data</a>
+  <script>
+    //setup variables to store data and plot.
+    var post_code=[]
+    var Count_Unit_Bicycle=[]
+    var Count_Unit_Bus=[]
+    var Count_Unit_Car=[]
+    var Count_Unit_Motorcycle_Moped=[]
+    var Count_Unit_Other=[]
+    var Count_Unit_Pedestrian=[]
+    var Count_Unit_Truck=[]
+    var Count_Events=[]
+    function select_vehicle_types(){
+      console.log("function select_vehicle_types: start")
+      //user selects which accidents to plot by vehicle type.
+      bicycles_elem = document.getElementById("bicycles")
+      buses_elem = document.getElementById("buses")
+      cars_elem = document.getElementById("cars")
+      motorcycles_mopeds_elem = document.getElementById("motorcycles_mopeds")
+      pedestrians_elem = document.getElementById("pedestrians")
+      trucks_elem = document.getElementById("trucks")
+      other_elem = document.getElementById("other")
+      console.log("bicycles_elem.checked:", bicycles_elem.checked)
+      console.log("buses_elem.checked:", buses_elem.checked)
+      console.log("cars_elem.checked:", cars_elem.checked)
+      console.log("motorcycles_mopeds_elem.checked:", motorcycles_mopeds_elem.checked)
+      console.log("pedestrians_elem.checked:", pedestrians_elem.checked)
+      console.log("trucks_elem.checked:", trucks_elem.checked)
+      console.log("other_elem.checked:", other_elem.checked)
+      if (document.getElementById("selectYear").value==""){
+        console.log("Please select a year to plot.")
+        document.getElementById("mychart1").innerHTML = "Year not selected. Select year."
+      }else {
+        plot_data()
+      }
+    }
+    function plot_data() {
+      //plot data.
+      console.log("function plot_data:start")
+      var stacked_layout = []
+      var trace1 = {
+          x: post_code,
+          y: Count_Unit_Bicycle,
+          name: 'Bicycles',
+          type: 'bar',
+          marker:{ color: 'yellow'  },
+      };
+      //
+      var trace2 = {
+          x: post_code,
+          y: Count_Unit_Bus,
+          name: 'Buses',
+          type: 'bar',
+          marker:{ color: 'blue'  },
+      };
+      //
+      var trace3 = {
+          x: post_code,
+          y: Count_Unit_Car,
+          name: 'Cars',
+          type: 'bar',
+          marker:{ color: 'red'  },
+      };
+      //
+      var trace4 = {
+          x: post_code,
+          y: Count_Unit_Motorcycle_Moped,
+          name: 'Motorcycles & Mopeds',
+          type: 'bar',
+          marker:{ color: 'green'  },
+      };
+      //
+      var trace5 = {
+          x: post_code,
+          y: Count_Unit_Pedestrian,
+          name: 'Pedestrians',
+          type: 'bar',
+          marker:{ color: 'orange'  },
+      };
+      //
+      var trace6 = {
+          x: post_code,
+          y: Count_Unit_Truck,
+          name: 'Trucks',
+          type: 'bar',
+          marker:{ color: 'purple'  },
+      };
+      //
+      var trace7 = {
+          x: post_code,
+          y: Count_Unit_Other,
+          name: 'Other',
+          type: 'bar',
+          marker:{ color: 'pink'  },
+      };
+      //
+      //
+      //var stacked_layout = [trace1, trace2, trace3, trace4, trace5, trace6, trace7];
+      if (document.getElementById("bicycles").checked){
+        console.log("bicycles selected")
+        stacked_layout.push(trace1)
+      }else{
+        console.log("bicycles _NOT_selected")
+      }
+      //
+      if (document.getElementById("buses").checked){
+        console.log("buses selected")
+        stacked_layout.push(trace2)
+      }else{
+        console.log("buses _NOT_selected")
+      }
+      //
+      if (document.getElementById("cars").checked){
+        console.log("cars selected")
+        stacked_layout.push(trace3)
+      }else{
+        console.log("cars _NOT_selected")
+      }
+      //
+      if (document.getElementById("motorcycles_mopeds").checked){
+        console.log("motorcycles_mopeds selected")
+        stacked_layout.push(trace4)
+      }else{
+        console.log("motorcycles_mopeds _NOT_selected")
+      }
+      //
+      if (document.getElementById("pedestrians").checked){
+        console.log("pedestrians selected")
+        stacked_layout.push(trace5)
+      }else{
+        console.log("pedestrians _NOT_selected")
+      }
+      //
+      if (document.getElementById("trucks").checked){
+        console.log("trucks selected")
+        stacked_layout.push(trace6)
+      }else{
+        console.log("trucks _NOT_selected")
+      }
+      //
+      if (document.getElementById("other").checked){
+        console.log("other selected")
+        stacked_layout.push(trace7)
+      }else{
+        console.log("other _NOT_selected")
+      }
+      //
+      y_axis_title = 'Crashes by Postcode for '+document.getElementById("selectYear").value
+      //y_axis_title_suffix = " (see legend for categories)."
+      console.log("stacked_layout:\n", stacked_layout)
+      console.log("stacked_layout.length:", stacked_layout.length)
+      if (stacked_layout.length==1){
+        console.log("only 1 category name selected:", stacked_layout[0]['name'])
+        y_axis_title = stacked_layout[0]['name']+" "+y_axis_title+" "
+      }
+      var layout = {barmode: 'stack',
+        xaxis: {
+          title: { text: 'PostCodes', },
+        },
+        yaxis: {
+          title: { text: y_axis_title, }
+        }
+      };
+      document.getElementById("mychart1").innerHTML = ""
+      //nb: Plotly.newPlot has to be the last action within d3.json.
+      document.getElementById("selectYear").focus();
+      if (stacked_layout.length==0){
+        console.log("no categories selected.")
+        document.getElementById("mychart1").innerHTML = "no vehicle categories selected, please select at least one vehicle category."
+      }else {
+        console.log("stacked_layout.length!=0")
+        console.log("stacked_layout:\n", stacked_layout)
+        Plotly.newPlot('mychart1', stacked_layout,  layout);
+      }
+    }
+
+    d3.json("/get_crash_locations_vehicle_types_years", function(data) {
+      console.log("get_crash_locations_vehicle_types_years:data.years\n", data.years)
+      select_elem = document.getElementById("selectYear")
+      years = []
+      for (let i = 0; i < data.years.length; i++) {
+        years.push(data.years[i])
+        select_elem.options[select_elem.options.length] = new Option(data.years[i], data.years[i]);
+      }
+      console.log("get_crash_locations_years:years:", years)
+      document.getElementById("selectYear").focus();
+    });
+    function select_year() {
+      var year_selected = document.getElementById("selectYear").value;
+      console.log("year_selected:", year_selected)
+      if (year_selected!=""){
+        console.log("load data")
+        document.getElementById("mychart1").innerHTML = "year selected. loading data, plotting chart here"
+        json_url = "/get_crash_vehicle_type_by_year_by_postcode/"+year_selected.toString()
+        d3.json(json_url, function(data) {
+          console.log("data\n", data)
+          //console.log("data.data\n", data.data)
+          console.log("data.data.length\n", data.data.length)
+          for (let i = 0; i < data.data.length; i++) {
+            console.log(data.data[i])
+            post_code.push(data.data[i]['post_code'])
+            Count_Unit_Bicycle.push(data.data[i]['Count_Unit_Bicycle'])
+            Count_Unit_Bus.push(data.data[i]['Count_Unit_Bus'])
+            Count_Unit_Car.push(data.data[i]['Count_Unit_Car'])
+            Count_Unit_Motorcycle_Moped.push(data.data[i]['Count_Unit_Motorcycle_Moped'])
+            Count_Unit_Other.push(data.data[i]['Count_Unit_Other'])
+            Count_Unit_Pedestrian.push(data.data[i]['Count_Unit_Pedestrian'])
+            Count_Unit_Truck.push(data.data[i]['Count_Unit_Truck'])
+            Count_Events.push(data.data[i]['count_events'])
+          };
+          console.log("post_code:", post_code)
+          console.log("Count_Unit_Bicycle:", Count_Unit_Bicycle)
+          console.log("Count_Unit_Bus:", Count_Unit_Bus)
+          console.log("Count_Unit_Car:", Count_Unit_Car)
+          console.log("Count_Unit_Motorcycle_Moped:", Count_Unit_Motorcycle_Moped)
+          console.log("Count_Unit_Other:", Count_Unit_Other)
+          console.log("Count_Unit_Pedestrian:", Count_Unit_Pedestrian)
+          console.log("Count_Unit_Truck:", Count_Unit_Truck)
+          console.log("Count_Events:", Count_Events)
+          console.log("post_code.length:", post_code.length)
+          console.log("Count_Unit_Bicycle.length:", Count_Unit_Bicycle.length)
+          console.log("Count_Unit_Bus.length:", Count_Unit_Bus.length)
+          console.log("Count_Unit_Car.length:", Count_Unit_Car.length)
+          console.log("Count_Unit_Motorcycle_Moped.length:", Count_Unit_Motorcycle_Moped.length)
+          console.log("Count_Unit_Other.length:", Count_Unit_Other.length)
+          console.log("Count_Unit_Pedestrian.length:", Count_Unit_Pedestrian.length)
+          console.log("Count_Unit_Truck.length:", Count_Unit_Truck.length)
+          console.log("Count_Events.length:", Count_Events.length)
+          //
+          plot_data()
+        });//end d3.json loading
+      } else {
+        console.log("blank selected. do nothing. prompt user to select year.")
+      }
+    }
+
+  </script>
+  </body>
+</html>

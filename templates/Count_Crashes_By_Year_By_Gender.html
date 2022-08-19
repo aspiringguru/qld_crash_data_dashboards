@@ -1,0 +1,92 @@
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Qld Crash Data.</title>
+    <!--<link rel="stylesheet" href="style.css"> -->
+    <!-- <script src='https://cdn.plot.ly/plotly-2.12.1.min.js'></script>  -->
+    <!-- <script src="https://d3js.org/d3.v4.min.js"></script> -->
+    <script src='/static/plotly-2.12.1.min.js'></script>
+    <script src="/static/d3.v4.min.js"></script>
+    <style>
+      .chart {
+        width:85%;height:50%;
+      }
+    </style>
+  </head>
+  <body>
+    <div id='mychart1' class='chart'>loading data, plotting chart here.</div>
+    Data Source : <a href="https://www.data.qld.gov.au/dataset/crash-data-from-queensland-roads/resource/dd13a889-2a48-4b91-8c64-59f824ed3d2c">Qld Crash Data</a>
+  <script>
+    d3.json("/get_Count_Crashes_By_Year_By_Gender", function(data) {
+      //console.log("data\n", data)
+      console.log("data.data\n", data.data)
+      console.log("data.data.length\n", data.data.length)
+      x=[]
+      y_male_only=[]
+      y_female_only=[]
+      y_male_and_female=[]
+      y_no_gender=[]
+      y_error_gender=[]
+      for (let i = 0; i < data.data.length; i++) {
+      //for (let i = 0; i < 5; i++) {
+        if (i % 4 === 0) {
+          x.push(data.data[i][0])
+        }
+        console.log(i, data.data[i])
+        if (data.data[i][1]=="No" && data.data[i][2]=="No"){
+          y_no_gender.push(data.data[i][3]);
+        } else if (data.data[i][1]=="Yes" && data.data[i][2]=="No") {
+          y_male_only.push(data.data[i][3]);
+        } else if (data.data[i][1]=="No" && data.data[i][2]=="Yes") {
+          y_female_only.push(data.data[i][3]);
+        } else if (data.data[i][1]=="Yes" && data.data[i][2]=="Yes") {
+          y_male_and_female.push(data.data[i][3]);
+        } else {
+          y_error_gender.push(data.data[i][3]);
+        }
+      }
+      console.log("x:", x)
+      console.log("y_male_only:", y_male_only)
+      console.log("y_female_only:", y_female_only)
+      console.log("y_male_and_female:", y_male_and_female)
+      console.log("y_no_gender:", y_no_gender)
+      console.log("y_error_gender:", y_error_gender)
+      //
+      var trace1 = {
+          x: x,
+          y: y_male_only,
+          name: 'male driver only',
+          type: 'bar'
+        };
+      //
+      var trace2 = {
+          x: x,
+          y: y_female_only,
+          name: 'female driver only',
+          type: 'bar'
+        };
+      //
+      var trace3 = {
+          x: x,
+          y: y_male_and_female,
+          name: 'Male and female drivers',
+          type: 'bar'
+        };
+      //
+      var trace4 = {
+          x: x,
+          y: y_no_gender,
+          name: 'unknown gender drivers',
+          type: 'bar'
+        };
+      //
+      var plot_data = [trace1, trace2, trace3, trace4];
+      var layout = {barmode: 'stack'};
+      document.getElementById("mychart1").innerHTML = ""
+      //nb: Plotly.newPlot has to be the last action within d3.json.
+      Plotly.newPlot('mychart1', plot_data,  layout);
+    })
+    //https://plotly.com/javascript/bar-charts/#stacked-bar-chart
+  </script>
+  </body>
+</html>

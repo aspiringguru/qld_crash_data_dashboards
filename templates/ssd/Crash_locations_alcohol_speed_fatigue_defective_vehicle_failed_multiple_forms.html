@@ -1,0 +1,279 @@
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Qld Crash Data.</title>
+    <!--<link rel="stylesheet" href="style.css"> -->
+    <!-- <script src='https://cdn.plot.ly/plotly-2.12.1.min.js'></script>  -->
+    <!-- <script src="https://d3js.org/d3.v4.min.js"></script> -->
+    <script src='/static/plotly-2.12.1.min.js'></script>
+    <script src="/static/d3.v4.min.js"></script>
+    <script src="/static/dataframe.min.js"></script>
+    <!-- <script src="https://gmousse.github.io/dataframe-js/dist/dataframe.min.js"></script> -->
+    <!-- <script src="https://gmousse.github.io/dataframe-js/dist/dataframe.js"></script> -->
+    <style>
+      .chart {
+        width:90%;height:70%;
+      }
+    </style>
+  </head>
+  <body>
+    <hr><hr>
+    <select id="selectYear" onchange="select_year()">
+      <option value="" selected>Select Year</option>
+    </select>
+    <div>
+        <table>
+          <tr>
+            <form name="drink_driving" id="drink_driving" onchange="update_selection_drink_driving()">
+              <td>
+                <input type="checkbox" id="Involving_Drink_Driving" name="Involving_Drink_Driving" value="1">
+                <label for="Involving_Drink_Driving">Involving_Drink_Driving</label>
+              </td>
+              <td>
+                <input type="checkbox" id="Ignore_Drink_Driving" name="Ignore_Drink_Driving" value="1">
+                <label for="Ignore_Drink_Driving">Ignore Drink Driving</label>
+              </td>
+            </form>
+            <td rowspan="4">
+               <form name="select_all" id="select_all" onchange="update_selection_all()">
+                 <input type="checkbox" id="Ignore_All" name="Ignore_All" value="1" checked>
+                 <label for="Ignore_All">Ignore All</label>
+               </form>
+            </td>
+          </tr>
+          <tr>
+            <form name="driver_speed" id="driver_speed" onchange="update_selection_driver_speed()">
+            <td>
+              <input type="checkbox" id="Involving_Driver_Speed" name="Involving_Driver_Speed" value="1">
+              <label for="Involving_Driver_Speed">Involving_Driver_Speed</label>
+            </td>
+            <td>
+              <input type="checkbox" id="Ignore_Driver_Speed" name="Ignore_Driver_Speed" value="1">
+              <label for="Ignore_Driver_Speed">Ignore Driver Speed</label>
+            </td>
+            </form>
+          </tr>
+          <tr>
+            <form name="fatigued_driver" id="fatigued_driver" onchange="update_selection_fatigued_driver()">
+              <td>
+                <input type="checkbox" id="Involving_Fatigued_Driver" name="Involving_Fatigued_Driver" value="1">
+                <label for="Involving_Fatigued_Driver">Involving_Fatigued_Driver</label>
+              </td>
+              <td>
+                <input type="checkbox" id="Ignore_Fatigued_Driver" name="Ignore_Fatigued_Driver" value="1">
+                <label for="Ignore_Fatigued_Driver">Ignore Fatigued Driver</label>
+              </td>
+            </form>
+          </tr>
+          <tr>
+            <form name="defective_vehicle" id="defective_vehicle" onchange="update_selection_defective_vehicle()">
+              <td>
+                <input type="checkbox" id="Involving_Defective_Vehicle" name="Involving_Defective_Vehicle" value="1">
+                <label for="Involving_Defective_Vehicle">Involving_Defective_Vehicle</label>
+              </td>
+              <td>
+                <input type="checkbox" id="Ignore_Defective_Vehicle" name="Ignore_Defective_Vehicle" value="1">
+                <label for="Ignore_Defective_Vehicle">Ignore Defective Vehicles</label>
+              </td>
+            </form>
+          </tr>
+        </table>
+    </div>
+    <div id='mychart1' class='chart'>Loading Data.</div>
+    Data Source : <a href="https://www.data.qld.gov.au/dataset/crash-data-from-queensland-roads/resource/f999155b-37f7-48aa-b5dd-644838130b0b">Qld Crash Data</a>
+  <script>
+    var loaded_data = null
+    var filtered_data = null
+    var Count_All_Casualties = []
+    var Count_Crashes = []
+    var Count_Fatality = []
+    var Count_Hospitalised = []
+    var Count_Medically_Treated = []
+    var Count_Minor_Injury = []
+    var Crash_Police_Region = []
+    var Crash_Severity = []
+    var Crash_Year = []
+    var Involving_Defective_Vehicle = []
+    var Involving_Drink_Driving = []
+    var Involving_Driver_Speed = []
+    var Involving_Fatigued_Driver = []
+    /*
+    var F_Count_All_Casualties = []
+    var F_Count_Crashes = []
+    var F_Count_Fatality = []
+    var F_Count_Hospitalised = []
+    var F_Count_Medically_Treated = []
+    var F_Count_Minor_Injury = []
+    var F_Crash_Police_Region = []
+    var F_Crash_Severity = []
+    var F_Crash_Year = []
+    var F_Involving_Defective_Vehicle = []
+    var F_Involving_Drink_Driving = []
+    var F_Involving_Driver_Speed = []
+    var F_Involving_Fatigued_Driver = []
+    */
+    //
+    d3.json("/get_alcohol_speed_fatigue_defect_years", function(data) {
+      console.log("get_alcohol_speed_fatigue_defect_years:data.years\n", data.years)
+      select_elem = document.getElementById("selectYear")
+      years = []
+      for (let i = 0; i < data.years.length; i++) {
+        years.push(data.years[i])
+        select_elem.options[select_elem.options.length] = new Option(data.years[i], data.years[i]);
+      }
+      console.log("get_crash_locations_years:years:", years)
+      document.getElementById("selectYear").focus();
+    });
+    //
+    d3.json("/get_alcohol_speed_fatigue_defect", function(data) {
+      console.log("get_alcohol_speed_fatigue_defect:data.data.length\n", data.data.length)
+      console.log("get_alcohol_speed_fatigue_defect:data.data\n", data.data)
+      loaded_data = data.data
+      for (let i = 0; i < data.data.length; i++) {
+        console.log("data.data["+i.toString()+"]:", data.data[i])
+        Count_All_Casualties.push(data.data[i]['Count_All_Casualties'])
+        Count_Crashes.push(data.data[i]['Count_Crashes'])
+        Count_Fatality.push(data.data[i]['Count_Fatality'])
+        Count_Hospitalised.push(data.data[i]['Count_Hospitalised'])
+        Count_Medically_Treated.push(data.data[i]['Count_Medically_Treated'])
+        Count_Minor_Injury.push(data.data[i]['Count_Minor_Injury'])
+        Crash_Police_Region.push(data.data[i]['Crash_Police_Region'])
+        Crash_Severity.push(data.data[i]['Crash_Severity'])
+        Crash_Year.push(data.data[i]['Crash_Year'])
+        Involving_Defective_Vehicle.push(data.data[i]['Involving_Defective_Vehicle'])
+        Involving_Drink_Driving.push(data.data[i]['Involving_Drink_Driving'])
+        Involving_Driver_Speed.push(data.data[i]['Involving_Driver_Speed'])
+        Involving_Fatigued_Driver.push(data.data[i]['Involving_Fatigued_Driver'])
+      }
+      //console.log("keys:", Object.keys(data.data[0]))
+      document.getElementById("mychart1").innerHTML = "data loaded. Select year and categories to plot. (chart will plot and update)"
+      //console.log("Count_All_Casualties:\n", Count_All_Casualties)
+    });
+    //
+    //
+    function update_selection_drink_driving(){
+      console.log("function:update_selection_drink_driving:start")
+      if (document.getElementById("Involving_Drink_Driving").checked){
+        document.getElementById("Ignore_Drink_Driving").checked=false
+        document.getElementById("Ignore_All").checked=false
+      } else if (document.getElementById("Ignore_Drink_Driving").checked) {
+        document.getElementById("Involving_Drink_Driving").checked=false
+        document.getElementById("Ignore_All").checked=false
+      }
+    }
+    //
+    function update_selection_defective_vehicle(){
+      console.log("function:update_selection_defective_vehicle:start")
+    }
+    //
+    function update_selection_fatigued_driver(){
+      console.log("function:update_selection_fatigued_driver:start")
+    }
+    //
+    function update_selection_driver_speed(){
+      console.log("function:update_selection_driver_speed:start")
+    }
+    //
+    function update_selection_all(){
+      console.log("function:update_selection_all:start")
+      if (document.getElementById("Ignore_All").checked){
+        //uncheck all other checkboxes.
+        document.getElementById("Involving_Drink_Driving").checked=false
+        document.getElementById("Ignore_Drink_Driving").checked=false
+        document.getElementById("Involving_Driver_Speed").checked=false
+        document.getElementById("Ignore_Driver_Speed").checked=false
+        document.getElementById("Involving_Fatigued_Driver").checked=false
+        document.getElementById("Ignore_Fatigued_Driver").checked=false
+        document.getElementById("Involving_Defective_Vehicle").checked=false
+        document.getElementById("Ignore_Defective_Vehicle").checked=false
+      }
+    }
+    //
+    function select_factors(){
+      console.log("function select_factors: start")
+      Involving_Drink_Driving_elem = document.getElementById("Involving_Drink_Driving")
+      Involving_Driver_Speed_elem = document.getElementById("Involving_Driver_Speed")
+      Involving_Fatigued_Driver_elem = document.getElementById("Involving_Fatigued_Driver")
+      Involving_Defective_Vehicle_elem = document.getElementById("Involving_Defective_Vehicle")
+      console.log("Involving_Drink_Driving_elem.checked:", Involving_Drink_Driving_elem.checked)
+      console.log("Involving_Driver_Speed_elem.checked:", Involving_Driver_Speed_elem.checked)
+      console.log("Involving_Fatigued_Driver_elem.checked:", Involving_Fatigued_Driver_elem.checked)
+      console.log("Involving_Defective_Vehicle_elem.checked:", Involving_Defective_Vehicle_elem.checked)
+      if (document.getElementById("selectYear").value==""){
+        console.log("Please select a year to plot.")
+        document.getElementById("mychart1").innerHTML = "Year not selected. Select year."
+      }
+      //filter data as requested by form.
+      /*
+      F_Count_All_Casualties = []
+      F_Count_Crashes = []
+      F_Count_Fatality = []
+      F_Count_Hospitalised = []
+      F_Count_Medically_Treated = []
+      F_Count_Minor_Injury = []
+      F_Crash_Police_Region = []
+      F_Crash_Severity = []
+      F_Crash_Year = []
+      F_Involving_Defective_Vehicle = []
+      F_Involving_Drink_Driving = []
+      F_Involving_Driver_Speed = []
+      F_Involving_Fatigued_Driver = []
+      */
+      temp_filteredA = []
+      temp_filtered1 = []
+      temp_filtered2 = []
+      temp_filtered3 = []
+      filtered_data = []
+      selectYear_elem = document.getElementById("selectYear")
+      selected_year = parseInt(document.getElementById("selectYear").value)
+      console.log("selected_year:", selected_year)
+      console.log("loaded_data.length:", loaded_data.length)
+      for (let i = 0; i < loaded_data.length; i++) {
+        if (selected_year==loaded_data[i]['Crash_Year']){
+          temp_filteredA.push(loaded_data[i])
+        }
+      }
+      console.log("temp_filteredA.length:", temp_filteredA.length)
+      for (let i = 0; i < temp_filteredA.length; i++) {
+        if (Involving_Drink_Driving_elem.checked && temp_filteredA[i]['Involving_Drink_Driving']=='Yes'){
+          temp_filtered1.push(temp_filteredA[i])
+        } else if (!Involving_Drink_Driving_elem.checked && temp_filteredA[i]['Involving_Drink_Driving']=='No') {
+          temp_filtered1.push(temp_filteredA[i])
+        }
+      }
+      console.log("temp_filtered1.length:", temp_filtered1.length)
+      for (let i = 0; i < temp_filtered1.length; i++) {
+        if (Involving_Driver_Speed_elem.checked && loaded_data[i]['Involving_Driver_Speed']=='Yes'){
+          temp_filtered2.push(temp_filtered1[i])
+        } else if (!Involving_Driver_Speed_elem.checked && loaded_data[i]['Involving_Driver_Speed']=='No') {
+          temp_filtered2.push(temp_filtered1[i])
+        }
+      }
+      console.log("temp_filtered2.length:", temp_filtered2.length)
+      for (let i = 0; i < temp_filtered2.length; i++) {
+        if (Involving_Fatigued_Driver_elem.checked && loaded_data[i]['Involving_Fatigued_Driver']=='Yes'){
+          temp_filtered3.push(temp_filtered2[i])
+        } else if (!Involving_Fatigued_Driver_elem.checked && loaded_data[i]['Involving_Fatigued_Driver']=='No') {
+          temp_filtered3.push(temp_filtered2[i])
+        }
+      }
+      console.log("temp_filtered3.length:", temp_filtered3.length)
+      for (let i = 0; i < temp_filtered3.length; i++) {
+        if (Involving_Defective_Vehicle_elem.checked && loaded_data[i]['Involving_Defective_Vehicle']=='Yes'){
+          filtered_data.push(temp_filtered3[i])
+        } else if (!Involving_Defective_Vehicle_elem.checked && loaded_data[i]['Involving_Defective_Vehicle']=='No') {
+          filtered_data.push(temp_filtered3[i])
+        }
+      }
+      console.log("filtered_data.length:", filtered_data.length)
+    }
+    //
+    function select_year(){
+      console.log("function select_year:start")
+      selectYear_elem = document.getElementById("selectYear")
+      console.log("selectYear_elem.value:", selectYear_elem.value)
+    }
+
+  </script>
+  </body>
+</html>

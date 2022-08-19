@@ -1,0 +1,688 @@
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Qld Crash Data.</title>
+    <!--<link rel="stylesheet" href="style.css"> -->
+    <!-- <script src='https://cdn.plot.ly/plotly-2.12.1.min.js'></script>  -->
+    <!-- <script src="https://d3js.org/d3.v4.min.js"></script> -->
+    <script src='/static/plotly-2.12.1.min.js'></script>
+    <script src="/static/d3.v4.min.js"></script>
+    <script src="/static/dataframe.min.js"></script>
+    <!-- <script src="https://gmousse.github.io/dataframe-js/dist/dataframe.min.js"></script> -->
+    <!-- <script src="https://gmousse.github.io/dataframe-js/dist/dataframe.js"></script> -->
+    <style>
+      .chart {
+        width:90%;height:70%;
+      }
+      table,
+        table td {
+          border: 1px solid #cccccc;
+        }
+
+        td {
+          height: 80px;
+          width: 160px;
+          text-align: center;
+          vertical-align: middle;
+        }
+    </style>
+  </head>
+  <body>
+    <hr><hr>
+    <select id="selectYear" onchange="select_year()">
+      <option value="" selected>Select Year</option>
+    </select>
+    <div>
+      <form name="select_factors" id="select_factors" onchange="update_selection_drink_driving()">
+        <table>
+          <tr>
+            <th>Category</th>
+            <th>Include</th>
+            <th>Exclude</th>
+            <th>Ignore</th>
+          </tr>
+          <tr>
+              <td>Drink Driving</td>
+              <td>
+                <input type="radio" name="Involving_Drink_Driving" id="Involving_Drink_Driving" value="Yes" >
+              </td>
+              <td>
+                <input type="radio" name="Involving_Drink_Driving" id="Involving_Drink_Driving" value="No" >
+              </td>
+            <td>
+                <input type="radio" name="Involving_Drink_Driving" id="Involving_Drink_Driving" value="Ignore" checked>
+            </td>
+          </tr>
+          <tr>
+            <td>Driver Speed</td>
+            <td>
+              <input type="radio" name="Involving_Driver_Speed" id="Involving_Driver_Speed" value="Yes" >
+            </td>
+            <td>
+              <input type="radio" name="Involving_Driver_Speed" id="Involving_Driver_Speed" value="No" >
+            </td>
+            <td>
+              <input type="radio" name="Involving_Driver_Speed" id="Involving_Driver_Speed" value="Ignore" checked>
+            </td>
+          </tr>
+          <tr>
+              <td>Fatigued Driver</td>
+              <td>
+                <input type="radio" name="Involving_Fatigued_Driver" id="Involving_Fatigued_Driver" value="Yes" >
+              </td>
+              <td>
+                <input type="radio" name="Involving_Fatigued_Driver" id="Involving_Fatigued_Driver" value="No" >
+              </td>
+              <td>
+                <input type="radio" name="Involving_Fatigued_Driver" id="Involving_Fatigued_Driver" value="Ignore" checked>
+              </td>
+          </tr>
+          <tr>
+              <td>Defective Vehicle</td>
+              <td>
+                <input type="radio" name="Involving_Defective_Vehicle" id="Involving_Defective_Vehicle" value="Yes" >
+              </td>
+              <td>
+                <input type="radio" name="Involving_Defective_Vehicle" id="Involving_Defective_Vehicle" value="No" >
+              </td>
+              <td>
+                <input type="radio" name="Involving_Defective_Vehicle" id="Involving_Defective_Vehicle" value="Ignore" checked>
+              </td>
+          </tr>
+        </table>
+      </form>
+      <button onclick="test_button1()">filter data as per form</button>
+    </div>
+    <div id='mychart1' class='chart'>Loading Data.</div>
+    <div>
+      <table>
+        <tr>
+          <th>Category</th>
+          <th>Max/Region/Category.</th>
+          <th>Sum</th>
+        </tr>
+        <tr>
+          <td>All_Casualties</td>
+          <td id="max_Count_All_Casualties"></td>
+          <td id="sum_Count_All_Casualties"></td>
+        </tr>
+        <tr>
+          <td>Crashes</td>
+          <td id="max_Count_Crashes"></td>
+          <td id="sum_Count_Crashes"></td>
+        </tr>
+        <tr>
+          <td>Fatality</td>
+          <td id="max_Count_Fatality"></td>
+          <td id="sum_Count_Fatality"></td>
+        </tr>
+        <tr>
+          <td>Hospitalised</td>
+          <td id="max_Count_Hospitalised"></td>
+          <td id="sum_Count_Hospitalised"></td>
+        </tr>
+        <tr>
+          <td>Medically_Treated</td>
+          <td id="max_Count_Medically_Treated"></td>
+          <td id="sum_Count_Medically_Treated"></td>
+        </tr>
+        <tr>
+          <td>Minor_Injury</td>
+          <td id="max_Count_Minor_Injury"></td>
+          <td id="sum_Count_Minor_Injury"></td>
+        </tr>
+        <tr>
+          <td>unique_Crash_Police_Region</td>
+          <td id="unique_Crash_Police_Region" colspan=2></td>
+        </tr>
+        <tr>
+          <td>unique_Crash_Severity</td>
+          <td id="unique_Crash_Severity" colspan=2></td>
+        </tr>
+      </table>
+    </div>
+    <hr>
+    <div>
+      <table id="tbl_data_by_region">
+        <tr id="data_by_region_colnames">
+        </tr>
+    </table>
+    </div>
+    Data Source : <a href="https://www.data.qld.gov.au/dataset/crash-data-from-queensland-roads/resource/f999155b-37f7-48aa-b5dd-644838130b0b">Qld Crash Data</a>
+  <script>
+    const reducer = (accumulator, curr) => accumulator + curr;
+    var loaded_data = null
+    var filtered_data = null
+    var Count_All_Casualties = []
+    var Count_Crashes = []
+    var Count_Fatality = []
+    var Count_Hospitalised = []
+    var Count_Medically_Treated = []
+    var Count_Minor_Injury = []
+    var Crash_Police_Region = []
+    var Crash_Severity = []
+    var Crash_Year = []
+    var Involving_Defective_Vehicle = []
+    var Involving_Drink_Driving = []
+    var Involving_Driver_Speed = []
+    var Involving_Fatigued_Driver = []
+    //
+    var Involving_Drink_Driving_sel='Ignore'
+    var Involving_Driver_Speed_sel='Ignore'
+    var Involving_Fatigued_Driver_sel='Ignore'
+    var Involving_Defective_Vehicle_sel='Ignore'
+    var Police_Region_summary = []
+    /*
+    var F_Count_All_Casualties = []
+    var F_Count_Crashes = []
+    var F_Count_Fatality = []
+    var F_Count_Hospitalised = []
+    var F_Count_Medically_Treated = []
+    var F_Count_Minor_Injury = []
+    var F_Crash_Police_Region = []
+    var F_Crash_Severity = []
+    var F_Crash_Year = []
+    var F_Involving_Defective_Vehicle = []
+    var F_Involving_Drink_Driving = []
+    var F_Involving_Driver_Speed = []
+    var F_Involving_Fatigued_Driver = []
+    */
+    //
+    d3.json("/get_alcohol_speed_fatigue_defect_years", function(data) {
+      console.log("get_alcohol_speed_fatigue_defect_years:data.years\n", data.years)
+      select_elem = document.getElementById("selectYear")
+      years = []
+      for (let i = 0; i < data.years.length; i++) {
+        years.push(data.years[i])
+        select_elem.options[select_elem.options.length] = new Option(data.years[i], data.years[i]);
+      }
+      console.log("get_crash_locations_years:years:", years)
+      document.getElementById("selectYear").focus();
+    });
+    //
+    d3.json("/get_alcohol_speed_fatigue_defect", function(data) {
+      console.log("get_alcohol_speed_fatigue_defect:data.data.length\n", data.data.length)
+      console.log("get_alcohol_speed_fatigue_defect:data.data\n", data.data)
+      loaded_data = data.data
+      for (let i = 0; i < data.data.length; i++) {
+        console.log("data.data["+i.toString()+"]:", data.data[i])
+        Count_All_Casualties.push(data.data[i]['Count_All_Casualties'])
+        Count_Crashes.push(data.data[i]['Count_Crashes'])
+        Count_Fatality.push(data.data[i]['Count_Fatality'])
+        Count_Hospitalised.push(data.data[i]['Count_Hospitalised'])
+        Count_Medically_Treated.push(data.data[i]['Count_Medically_Treated'])
+        Count_Minor_Injury.push(data.data[i]['Count_Minor_Injury'])
+        Crash_Police_Region.push(data.data[i]['Crash_Police_Region'])
+        Crash_Severity.push(data.data[i]['Crash_Severity'])
+        Crash_Year.push(data.data[i]['Crash_Year'])
+        Involving_Defective_Vehicle.push(data.data[i]['Involving_Defective_Vehicle'])
+        Involving_Drink_Driving.push(data.data[i]['Involving_Drink_Driving'])
+        Involving_Driver_Speed.push(data.data[i]['Involving_Driver_Speed'])
+        Involving_Fatigued_Driver.push(data.data[i]['Involving_Fatigued_Driver'])
+      }
+      //console.log("keys:", Object.keys(data.data[0]))
+      document.getElementById("mychart1").innerHTML = "data loaded. Select year and categories to plot. (chart will plot and update)"
+      //console.log("Count_All_Casualties:\n", Count_All_Casualties)
+    });
+    //
+    function get_radio_value(id_name){
+      //console.log("function:get_radio_value:id_name:", id_name)
+      elems = document.getElementsByName(id_name)
+      //console.log("function:get_radio_value:elems.length:", elems.length)
+      for(i = 0; i < elems.length; i++) {
+          //console.log("i: "+i.toString()+" : "+elems[i].checked)
+                if(elems[i].checked){
+                  value_selected = elems[i].value;
+                  //console.log("get_radio_value:match @ i="+i.toString()+" : "+value_selected)
+                  return value_selected
+                }
+            }
+    }
+    //
+    function update_selection_drink_driving(){
+      console.log("\n\nfunction:update_selection_drink_driving:start")
+      Involving_Drink_Driving_sel = get_radio_value("Involving_Drink_Driving")
+      Involving_Driver_Speed_sel = get_radio_value("Involving_Driver_Speed")
+      Involving_Fatigued_Driver_sel = get_radio_value("Involving_Fatigued_Driver")
+      Involving_Defective_Vehicle_sel = get_radio_value("Involving_Defective_Vehicle")
+      console.log("Involving_Drink_Driving:", Involving_Drink_Driving_sel)
+      console.log("Involving_Driver_Speed:", Involving_Driver_Speed_sel)
+      console.log("Involving_Fatigued_Driver:", Involving_Fatigued_Driver_sel)
+      console.log("Involving_Defective_Vehicle:", Involving_Defective_Vehicle_sel)
+      console.log("calling function : select_factors()")
+      select_factors()
+    }
+    //
+    //
+    function select_factors(){
+      console.log("function select_factors: start")
+      if (document.getElementById("selectYear").value==""){
+        console.log("Please select a year to plot.")
+        document.getElementById("mychart1").innerHTML = "No Year selected. Select year."
+      }
+      //filter data as requested by form.
+      /*
+      F_Count_All_Casualties = []
+      F_Count_Crashes = []
+      F_Count_Fatality = []
+      F_Count_Hospitalised = []
+      F_Count_Medically_Treated = []
+      F_Count_Minor_Injury = []
+      F_Crash_Police_Region = []
+      F_Crash_Severity = []
+      F_Crash_Year = []
+      F_Involving_Defective_Vehicle = []
+      F_Involving_Drink_Driving = []
+      F_Involving_Driver_Speed = []
+      F_Involving_Fatigued_Driver = []
+      */
+      temp_filteredA = []
+      temp_filtered1 = []
+      temp_filtered2 = []
+      temp_filtered3 = []
+      filtered_data = []
+      selectYear_elem = document.getElementById("selectYear")
+      selected_year = parseInt(document.getElementById("selectYear").value)
+      console.log("selected_year:", selected_year)
+      console.log("loaded_data.length:", loaded_data.length)
+      for (let i = 0; i < loaded_data.length; i++) {
+        if (selected_year==loaded_data[i]['Crash_Year']){
+          temp_filteredA.push(loaded_data[i])
+        }
+      }
+      console.log("temp_filteredA.length:", temp_filteredA.length)
+      console.log("Involving_Drink_Driving_sel:", Involving_Drink_Driving_sel)
+      //this below could be simplified to
+      // if blah_sel == temp_filtered?[i]['blah'] push else push
+      //since the ==yes and ==no are redundant.
+      //but leave for readability (?)
+      for (let i = 0; i < temp_filteredA.length; i++) {
+      //for (let i = 0; i < 100; i++) {
+        //console.log(temp_filteredA[i]['Involving_Drink_Driving'])
+        if (Involving_Drink_Driving_sel=='Yes' && temp_filteredA[i]['Involving_Drink_Driving']=='Yes'){
+          temp_filtered1.push(temp_filteredA[i])
+          //console.log("Yes match & pushed")
+        } else if (Involving_Drink_Driving_sel=='No' && temp_filteredA[i]['Involving_Drink_Driving']=='No') {
+          temp_filtered1.push(temp_filteredA[i])
+          //console.log("No match & pushed")
+        } else if (Involving_Drink_Driving_sel=='Ignore') {
+          temp_filtered1.push(temp_filteredA[i])
+          //console.log("Ignore pushed")
+        }
+      }
+      console.log("temp_filtered1.length:", temp_filtered1.length)
+      console.log("Involving_Driver_Speed_sel:", Involving_Driver_Speed_sel)
+      for (let i = 0; i < temp_filtered1.length; i++) {
+        if (Involving_Driver_Speed_sel=='Yes' && temp_filtered1[i]['Involving_Driver_Speed']=='Yes'){
+          temp_filtered2.push(temp_filtered1[i])
+        } else if (Involving_Driver_Speed_sel=='No' && temp_filtered1[i]['Involving_Driver_Speed']=='No') {
+          temp_filtered2.push(temp_filtered1[i])
+        } else if (Involving_Driver_Speed_sel=='Ignore'){
+          temp_filtered2.push(temp_filtered1[i])
+        }
+      }
+      console.log("temp_filtered2.length:", temp_filtered2.length)
+      console.log("Involving_Fatigued_Driver_sel:", Involving_Fatigued_Driver_sel)
+      for (let i = 0; i < temp_filtered2.length; i++) {
+        //console.log(temp_filtered2[i]['Involving_Fatigued_Driver'])
+        if (Involving_Fatigued_Driver_sel=='Yes' && temp_filtered2[i]['Involving_Fatigued_Driver']=='Yes'){
+          temp_filtered3.push(temp_filtered2[i])
+          //console.log("pushed, yes matched.")
+        } else if (Involving_Fatigued_Driver_sel=='No' && temp_filtered2[i]['Involving_Fatigued_Driver']=='No') {
+          temp_filtered3.push(temp_filtered2[i])
+          //console.log("pushed, no matched.")
+        } else if (Involving_Fatigued_Driver_sel=='Ignore') {
+          temp_filtered3.push(temp_filtered2[i])
+        }
+      }
+      console.log("temp_filtered3.length:", temp_filtered3.length)
+      console.log("Involving_Defective_Vehicle_sel:", Involving_Defective_Vehicle_sel)
+      for (let i = 0; i < temp_filtered3.length; i++) {
+        if (Involving_Defective_Vehicle_sel=='Yes' && temp_filtered3[i]['Involving_Defective_Vehicle']=='Yes'){
+          filtered_data.push(temp_filtered3[i])
+        } else if (Involving_Defective_Vehicle_sel=='No' && temp_filtered3[i]['Involving_Defective_Vehicle']=='No') {
+          filtered_data.push(temp_filtered3[i])
+        }  else if (Involving_Defective_Vehicle_sel=='Ignore'){
+          filtered_data.push(temp_filtered3[i])
+        }
+      }
+      console.log("filtered_data:", filtered_data)
+      console.log("filtered_data.length:", filtered_data.length)
+    }
+    //
+    function select_year(){
+      console.log("function select_year:start")
+      selectYear_elem = document.getElementById("selectYear")
+      console.log("selectYear_elem.value:", selectYear_elem.value)
+    }
+    //
+    function plot_charts(Police_Region_summary){
+      console.log("start: function plot_charts")
+      console.log("Police_Region_summary:", Police_Region_summary)
+      document.getElementById("mychart1").innerHTML = ""
+      //convert Police_Region_summary into columns for plotting.
+      x_data = []
+      Count_All_Casualties_col = []
+      Count_Crashes_col = []
+      Count_Fatality_col = []
+      Count_Hospitalised_col = []
+      Count_Medically_Treated_col = []
+      Count_Minor_Injury_col = []
+      for (let i = 0; i < Police_Region_summary.length; i++) {
+        x_data.push(Police_Region_summary[i][0])
+        Count_All_Casualties_col.push(Police_Region_summary[i][1])
+        Count_Crashes_col.push(Police_Region_summary[i][2])
+        Count_Fatality_col.push(Police_Region_summary[i][3])
+        Count_Hospitalised_col.push(Police_Region_summary[i][4])
+        Count_Medically_Treated_col.push(Police_Region_summary[i][5])
+        Count_Minor_Injury_col.push(Police_Region_summary[i][6])
+      }
+      console.log("Count_All_Casualties_col:", Count_All_Casualties_col)
+      console.log("Count_Crashes_col:", Count_Crashes_col)
+      console.log("Count_Fatality_col:", Count_Fatality_col)
+      console.log("Count_Hospitalised_col:", Count_Hospitalised_col)
+      console.log("Count_Medically_Treated_col:", Count_Medically_Treated_col)
+      console.log("Count_Minor_Injury_col:", Count_Minor_Injury_col)
+      //
+      var trace1 = {
+          x: x_data,
+          y: Count_All_Casualties_col,
+          name: 'All Casualties',
+          type: 'bar',
+          marker:{ color: 'yellow'  },
+      };
+      var trace2 = {
+          x: x_data,
+          y: Count_Crashes_col,
+          name: 'Number of Crashes',
+          type: 'bar',
+          marker:{ color: 'red'  },
+      };
+      var trace3 = {
+          x: x_data,
+          y: Count_Fatality_col,
+          name: 'Number of Fatalities',
+          type: 'bar',
+          marker:{ color: 'red'  },
+      };
+      var trace4 = {
+          x: x_data,
+          y: Count_Hospitalised_col,
+          name: 'Number of Hospitalised',
+          type: 'bar',
+          marker:{ color: 'orange'  },
+      };
+      var trace5 = {
+          x: x_data,
+          y: Count_Medically_Treated_col,
+          name: 'Number of Medically Treated',
+          type: 'bar',
+          marker:{ color: 'brown'  },
+      };
+      var trace6 = {
+          x: x_data,
+          y: Count_Minor_Injury_col,
+          name: 'Number of Minor Injuries',
+          type: 'bar',
+          marker:{ color: 'yellow'  },
+      };
+      //
+      y_axis_title="Crashes by Categories"
+      subtitle_text = "(filters Drink Driving : "+Involving_Drink_Driving_sel+
+            ", Driver Speed : "+Involving_Driver_Speed_sel+
+            ", Fatigued Driver : "+Involving_Fatigued_Driver_sel+
+            ", Defective Vehicle : "+Involving_Defective_Vehicle_sel+")"
+      stacked_layout = [trace3, trace4, trace5, trace6]
+      var layout = {barmode: 'stack',
+        xaxis: {
+          title: { text: 'Police Crash Regions', },
+        },
+        yaxis: {
+          title: { text: y_axis_title, }
+        },
+        title: "Qld Crash Data "+document.getElementById("selectYear").value,
+        annotations: [{
+          text: subtitle_text,
+            font: {
+            size: 13,
+            color: 'rgb(116, 101, 130)',
+          },
+          showarrow: false,
+          align: 'center',
+          x: 0.5,
+          y: 1.1,
+          xref: 'paper',
+          yref: 'paper',
+        },
+        {
+          text: "Author : bmatthewtaylor@gmail.com",
+            font: {
+            size: 13,
+            color: 'rgb(116, 101, 130)',
+          },
+          showarrow: false,
+          align: 'center',
+          x: 0.5,
+          y: -.175,
+          xref: 'paper',
+          yref: 'paper',
+        }]
+      };
+      Plotly.newPlot('mychart1', stacked_layout,  layout);
+    }
+    //
+    function process_plot_data(){
+      console.log("function process_plot_data:start")
+      Count_All_Casualties = []
+      Count_Crashes = []
+      Count_Fatality = []
+      Count_Hospitalised = []
+      Count_Medically_Treated = []
+      Count_Minor_Injury = []
+      Crash_Police_Region = []
+      Crash_Severity = []
+      max_casualty = 0
+      max_fatality = 0
+      max_hospitalised = 0
+      max_medically_treated = 0
+      for (let i = 0; i < filtered_data.length; i++) {
+        Count_All_Casualties.push(filtered_data[i]['Count_All_Casualties'])
+        Count_Crashes.push(filtered_data[i]['Count_Crashes'])
+        Count_Fatality.push(filtered_data[i]['Count_Fatality'])
+        Count_Hospitalised.push(filtered_data[i]['Count_Hospitalised'])
+        Count_Medically_Treated.push(filtered_data[i]['Count_Medically_Treated'])
+        Count_Minor_Injury.push(filtered_data[i]['Count_Minor_Injury'])
+        Crash_Police_Region.push(filtered_data[i]['Crash_Police_Region'])
+        Crash_Severity.push(filtered_data[i]['Crash_Severity'])
+        if (filtered_data[i]['Count_All_Casualties']>max_casualty){
+          max_casualty=filtered_data[i]['Count_All_Casualties']
+        }
+        if (filtered_data[i]['Count_Fatality']>max_fatality){
+          max_fatality=filtered_data[i]['Count_Fatality']
+        }
+        if (filtered_data[i]['Count_Hospitalised']>max_hospitalised){
+          max_hospitalised=filtered_data[i]['Count_Hospitalised']
+        }
+        if (filtered_data[i]['Count_Medically_Treated']>max_medically_treated){
+          max_medically_treated=filtered_data[i]['Count_Medically_Treated']
+        }
+      }
+      console.log("max_fatality:", max_fatality)
+      console.log("max_hospitalised:", max_hospitalised)
+      console.log("max_medically_treated:", max_medically_treated)
+      console.log("max_casualty:", max_casualty)
+      //group data by Crash_Police_Region, stacked bar chart showing count of fatality, hospitalised, medically_treated, casualty
+      // casualty count should by >= fatality + hospitalised + medically_treated  ? or just those not medical/hostpital/death.
+      var max_Count_All_Casualties = 0
+      var max_Count_Crashes = 0
+      var max_Count_Fatality = 0
+      var max_Count_Hospitalised = 0
+      var max_Count_Medically_Treated = 0
+      var max_Count_Minor_Injury = 0
+      var unique_Crash_Police_Region = []
+      var unique_Crash_Severity = []
+      //
+      //
+      if (filtered_data.length>0){
+        max_Count_All_Casualties = Math.max(...Count_All_Casualties);
+        max_Count_Crashes = Math.max(...Count_Crashes)
+        max_Count_Fatality = Math.max(...Count_Fatality)
+        max_Count_Hospitalised = Math.max(...Count_Hospitalised)
+        max_Count_Medically_Treated = Math.max(...Count_Medically_Treated)
+        max_Count_Minor_Injury = Math.max(...Count_Minor_Injury)
+        unique_Crash_Police_Region = [...new Set(Crash_Police_Region)]
+        unique_Crash_Severity = [...new Set(Crash_Severity)]
+      }
+      //
+      console.log("unique_Crash_Police_Region:", unique_Crash_Police_Region)
+      console.log("unique_Crash_Severity:", unique_Crash_Severity)
+      console.log("max_Count_All_Casualties:", max_Count_All_Casualties)
+      console.log("max_Count_Crashes:", max_Count_Crashes)
+      console.log("max_Count_Fatality:", max_Count_Fatality)
+      console.log("max_Count_Hospitalised:", max_Count_Hospitalised)
+      console.log("max_Count_Medically_Treated:", max_Count_Medically_Treated)
+      console.log("max_Count_Minor_Injury:", max_Count_Minor_Injury)
+      document.getElementById("max_Count_All_Casualties").innerHTML = max_Count_All_Casualties;
+      document.getElementById("max_Count_Crashes").innerHTML = max_Count_Crashes;
+      document.getElementById("max_Count_Fatality").innerHTML = max_Count_Fatality;
+      document.getElementById("max_Count_Hospitalised").innerHTML = max_Count_Hospitalised;
+      document.getElementById("max_Count_Medically_Treated").innerHTML = max_Count_Medically_Treated;
+      document.getElementById("max_Count_Minor_Injury").innerHTML = max_Count_Minor_Injury;
+      //
+      unique_Crash_Police_Region_elem = document.getElementById("unique_Crash_Police_Region")
+      unique_Crash_Police_Region_text = ""
+      for (let i = 0; i < unique_Crash_Police_Region.length; i++) {
+        unique_Crash_Police_Region_text += unique_Crash_Police_Region[i]+", "
+      }
+      unique_Crash_Police_Region_elem.innerHTML = unique_Crash_Police_Region_text
+      //
+      unique_Crash_Severity_elem = document.getElementById("unique_Crash_Severity")
+      unique_Crash_Severity_text = ""
+      for (let i = 0; i < unique_Crash_Severity.length; i++) {
+        unique_Crash_Severity_text += unique_Crash_Severity[i]+", "
+      }
+      unique_Crash_Severity_elem.innerHTML = unique_Crash_Severity_text
+      //
+      var sum_Count_All_Casualties = 0;
+      var sum_Count_Crashes = 0;
+      var sum_Count_Fatality = 0;
+      var sum_Count_Hospitalised = 0;
+      var sum_Count_Medically_Treated = 0;
+      var sum_Count_Minor_Injury = 0;
+      if (filtered_data.length>0){
+        sum_Count_All_Casualties = Count_All_Casualties.reduce(reducer);
+        sum_Count_Crashes = Count_Crashes.reduce(reducer);
+        sum_Count_Fatality = Count_Fatality.reduce(reducer);
+        sum_Count_Hospitalised = Count_Hospitalised.reduce(reducer);
+        sum_Count_Medically_Treated = Count_Medically_Treated.reduce(reducer);
+        sum_Count_Minor_Injury = Count_Minor_Injury.reduce(reducer);
+      }
+      console.log("sum_Count_All_Casualties:", sum_Count_All_Casualties)
+      console.log("sum_Count_Crashes:", sum_Count_Crashes)
+      console.log("sum_Count_Fatality:", sum_Count_Fatality)
+      console.log("sum_Count_Hospitalised:", sum_Count_Hospitalised)
+      console.log("sum_Count_Medically_Treated:", sum_Count_Medically_Treated)
+      console.log("sum_Count_Minor_Injury:", sum_Count_Minor_Injury)
+      document.getElementById("sum_Count_All_Casualties").innerHTML = sum_Count_All_Casualties;
+      document.getElementById("sum_Count_Crashes").innerHTML = sum_Count_Crashes;
+      document.getElementById("sum_Count_Fatality").innerHTML = sum_Count_Fatality;
+      document.getElementById("sum_Count_Hospitalised").innerHTML = sum_Count_Hospitalised;
+      document.getElementById("sum_Count_Medically_Treated").innerHTML = sum_Count_Medically_Treated;
+      document.getElementById("sum_Count_Minor_Injury").innerHTML = sum_Count_Minor_Injury;
+      //
+      //build row for column titles 'regions'
+      const tbl = document.getElementById("tbl_data_by_region")
+      const tr = tbl.insertRow();
+      //const td1 = tr.insertCell();
+      //td1.appendChild(document.createTextNode("Crash Police Region"))
+      colnames = ["", "Count_All_Casualties", "Count_Crashes", "Count_Fatality",
+        "Count_Hospitalised", "Count_Medically_Treated", "Count_Minor_Injury"]
+      for (let i = 0; i < colnames.length; i++) {
+        const td = tr.insertCell();
+        console.log("inserting text into td: ", colnames[i])
+        td.appendChild(document.createTextNode(colnames[i]))
+      }
+      //
+      const m = unique_Crash_Police_Region.length;
+      const  n = 7;
+      Police_Region_summary = Array.from(Array(m), () => new Array(n));
+      for (let i = 0; i < unique_Crash_Police_Region.length; i++) {
+        var pol_region_all_casualties = 0
+        var pol_region_crashes = 0
+        var pol_region_fatality = 0
+        var pol_region_hospitalised = 0
+        var pol_region_medic_treated = 0
+        var pol_region_minor_injury = 0
+        for (let j = 0; j < filtered_data.length; j++) {
+          if (filtered_data[j]['Crash_Police_Region'] == unique_Crash_Police_Region[i]) {
+            pol_region_all_casualties += filtered_data[j]['Count_All_Casualties']
+            pol_region_crashes += filtered_data[j]['Count_Crashes']
+            pol_region_fatality += filtered_data[j]['Count_Fatality']
+            pol_region_hospitalised += filtered_data[j]['Count_Hospitalised']
+            pol_region_medic_treated += filtered_data[j]['Count_Medically_Treated']
+            pol_region_minor_injury += filtered_data[j]['Count_Minor_Injury']
+          }//end if
+          /*
+          Police_Region_summary[i] = temp_arr
+          const tr = tbl.insertRow();
+          for (let k = 0; k < temp_arr.length; k++) {
+            const td = tr.insertCell();
+            console.log("inserting text into td: ", temp_arr[k])
+            td.appendChild(document.createTextNode(temp_arr[k]))
+          }
+          */
+        }//end for j
+        temp_arr = [unique_Crash_Police_Region[i], pol_region_all_casualties,
+        pol_region_crashes, pol_region_fatality, pol_region_hospitalised,
+        pol_region_medic_treated, pol_region_minor_injury]
+        console.log("temp_arr:\n", temp_arr)
+        Police_Region_summary[i] = temp_arr
+        const tr = tbl.insertRow();
+        //const td1 = tr.insertCell();
+        //td1.appendChild(document.createTextNode("Crash Police Region"))
+        for (let k = 0; k < temp_arr.length; k++) {
+          const td = tr.insertCell();
+          console.log("inserting text into td: ", temp_arr[k])
+          td.appendChild(document.createTextNode(temp_arr[k]))
+        }
+      }//end for i
+      console.log("-------------------------------------")
+      plot_charts(Police_Region_summary)
+    }
+    //
+    function test_button1(){
+      console.log("function test_button1:start")
+      select_factors()
+      process_plot_data()
+      //console.log("function select_factors() called")
+    }
+    //
+
+
+    /*
+    function select_factors() filters data on these columns.
+
+    Crash_Year
+    Involving_Defective_Vehicle
+    Involving_Drink_Driving
+    Involving_Driver_Speed
+    Involving_Fatigued_Driver
+
+    leaving us with these data points.
+
+    - make a line plot of these vs 'Crash_Police_Region'
+    Count_All_Casualties
+    Count_Crashes
+    Crash_Severity
+
+    - make a stacked bar chart with these columns  vs 'Crash_Police_Region'
+    Count_Fatality
+    Count_Hospitalised
+    Count_Medically_Treated
+    Count_Minor_Injury
+
+    */
+
+  </script>
+  </body>
+</html>

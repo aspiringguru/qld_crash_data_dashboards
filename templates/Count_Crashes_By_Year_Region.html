@@ -1,0 +1,128 @@
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Qld Crash Data.</title>
+    <!--<link rel="stylesheet" href="style.css"> -->
+    <!-- <script src='https://cdn.plot.ly/plotly-2.12.1.min.js'></script>  -->
+    <!-- <script src="https://d3js.org/d3.v4.min.js"></script> -->
+    <script src='/static/plotly-2.12.1.min.js'></script>
+    <script src="/static/d3.v4.min.js"></script>
+    <style>
+      .chart {
+        width:85%;height:50%;
+      }
+    </style>
+  </head>
+  <body>
+    <div id='mychart1' class='chart'>loading data, plotting chart here.</div>
+    Data Source : <a href="https://www.data.qld.gov.au/dataset/crash-data-from-queensland-roads/resource/dd13a889-2a48-4b91-8c64-59f824ed3d2c">Qld Crash Data</a>
+  <script>
+    d3.json("/get_Count_Crashes_By_Year_Region", function(data) {
+      //console.log("data\n", data)
+      //console.log("data.data\n", data.data)
+      //console.log("data.data.length\n", data.data.length)
+      year=[]
+      Brisbane=[]
+      Central=[]
+      Far_Northern=[]
+      North_Coast=[]
+      Northern=[]
+      South_Eastern=[]
+      Southern=[]
+      Unknown=[]
+      for (let i = 0; i < data.data.length; i++) {
+        //console.log(data.data[i])
+        year.push(data.data[i][0])
+        Brisbane.push(data.data[i][1])
+        Central.push(data.data[i][2])
+        Far_Northern.push(data.data[i][3])
+        North_Coast.push(data.data[i][4])
+        Northern.push(data.data[i][5])
+        South_Eastern.push(data.data[i][6])
+        Southern.push(data.data[i][7])
+        Unknown.push(data.data[i][8])
+      }
+      /*
+      console.log("year:", year)
+      console.log("Brisbane:", Brisbane)
+      console.log("Central:", Central)
+      console.log("Far_Northern:", Far_Northern)
+      console.log("North_Coast:", North_Coast)
+      console.log("Northern:", Northern)
+      console.log("South_Eastern:", South_Eastern)
+      console.log("Southern:", Southern)
+      console.log("Unknown:", Unknown)
+      */
+      var trace1 = {
+          x: year,
+          y: Brisbane,
+          name: 'Brisbane',
+          type: 'bar'
+        };
+      //
+      var trace2 = {
+          x: year,
+          y: Central,
+          name: 'Central',
+          type: 'bar'
+        };
+      //
+      var trace3 = {
+          x: year,
+          y: Far_Northern,
+          name: 'Far Northern',
+          type: 'bar'
+        };
+      //
+      var trace4 = {
+          x: year,
+          y: North_Coast,
+          name: 'North Coast',
+          type: 'bar'
+        };
+      //
+      var trace5 = {
+          x: year,
+          y: Northern,
+          name: 'Northern',
+          type: 'bar'
+        };
+      //
+      var trace6 = {
+          x: year,
+          y: South_Eastern,
+          name: 'South Eastern',
+          type: 'bar'
+        };
+      //
+      var trace7 = {
+          x: year,
+          y: Southern,
+          name: 'Southern',
+          type: 'bar'
+        };
+      //
+      var trace8 = {
+          x: year,
+          y: Unknown,
+          name: 'Unknown',
+          type: 'bar'
+        };
+      //
+      var plot_data = [trace1, trace2, trace3, trace4, trace5, trace6, trace7, trace8];
+      var layout = {barmode: 'stack',
+                    title: { text:'Qld Crash data', },
+                      xaxis: {
+                        title: { text: 'Year', },
+                      },
+                      yaxis: {
+                        title: { text: 'Total Crashes Recorded per year.', }
+                      }
+                    };
+      document.getElementById("mychart1").innerHTML = ""
+      //nb: Plotly.newPlot has to be the last action within d3.json.
+      Plotly.newPlot('mychart1', plot_data,  layout);
+    })
+  </script>
+  </body>
+</html>

@@ -1,0 +1,92 @@
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Qld Crash Data.</title>
+    <!--<link rel="stylesheet" href="style.css"> -->
+    <!-- <script src='https://cdn.plot.ly/plotly-2.12.1.min.js'></script>  -->
+    <!-- <script src="https://d3js.org/d3.v4.min.js"></script> -->
+    <script src='/static/plotly-2.12.1.min.js'></script>
+    <script src="/static/d3.v4.min.js"></script>
+    <style>
+      .chart {
+        width:85%;height:50%;
+      }
+    </style>
+  </head>
+  <body>
+    <div id='mychart1' class='chart'>loading data, plotting chart here.</div>
+    Data Source : <a href="https://www.data.qld.gov.au/dataset/crash-data-from-queensland-roads/resource/dd13a889-2a48-4b91-8c64-59f824ed3d2c">Qld Crash Data</a>
+  <script>
+    d3.json("/get_Count_Crashes_By_Year_By_Age", function(data) {
+      //console.log("data\n", data)
+      //console.log("data.data\n", data.data)
+      console.log("data.data.length\n", data.data.length)
+      x=[]
+      y_young_driver_16_24=[]
+      y_senior_driver_over60=[]
+      y_driver_24_60=[]
+      y_young_and_senior_driver=[]
+      y_error=[]
+      for (let i = 0; i < data.data.length; i++) {
+      //for (let i = 0; i < 5; i++) {
+        if (i % 4 === 0) {
+          x.push(data.data[i][0])
+        }
+        //console.log(i, data.data[i])
+        if (data.data[i][1]=="No" && data.data[i][2]=="No"){
+          y_driver_24_60.push(data.data[i][3]);
+        } else if (data.data[i][1]=="Yes" && data.data[i][2]=="No") {
+          y_young_driver_16_24.push(data.data[i][3]);
+        } else if (data.data[i][1]=="No" && data.data[i][2]=="Yes") {
+          y_senior_driver_over60.push(data.data[i][3]);
+        } else if (data.data[i][1]=="Yes" && data.data[i][2]=="Yes") {
+          y_young_and_senior_driver.push(data.data[i][3]);
+        } else {
+          y_error.push(data.data[i][3]);
+        }
+      }
+      console.log("x:", x)
+      console.log("y_young_driver_16_24:", y_young_driver_16_24)
+      console.log("y_senior_driver_over60:", y_senior_driver_over60)
+      console.log("y_driver_24_60:", y_driver_24_60)
+      console.log("y_young_and_senior_driver:", y_young_and_senior_driver)
+      console.log("y_error:", y_error)
+      //
+      var trace1 = {
+          x: x,
+          y: y_young_driver_16_24,
+          name: 'young driver 16 to 24yo  ',
+          type: 'bar'
+        };
+      //
+      var trace2 = {
+          x: x,
+          y: y_senior_driver_over60,
+          name: 'senior driver over 60yo',
+          type: 'bar'
+        };
+      //
+      var trace3 = {
+          x: x,
+          y: y_driver_24_60,
+          name: 'driver between 24 & 60yo',
+          type: 'bar'
+        };
+      //
+      var trace4 = {
+          x: x,
+          y: y_young_and_senior_driver,
+          name: 'drivers over 60 and 16 to 24yo',
+          type: 'bar'
+        };
+      //
+      var plot_data = [trace1, trace2, trace3, trace4];
+      var layout = {barmode: 'stack'};
+      document.getElementById("mychart1").innerHTML = ""
+      //nb: Plotly.newPlot has to be the last action within d3.json.
+      Plotly.newPlot('mychart1', plot_data,  layout, {displayModeBar: false});
+    })
+    //https://plotly.com/javascript/bar-charts/#stacked-bar-chart
+  </script>
+  </body>
+</html>

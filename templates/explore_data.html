@@ -1,0 +1,69 @@
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Qld Crash Data.</title>
+    <script src="/static/d3.v4.min.js"></script>
+  </head>
+  <body>
+    <form name="form" action="javascript:;" onsubmit="get_info(this)">
+      <select name="select_route" id="select_column" onchange="get_info()">
+      </select>
+      <div id="submit_button"></div>
+    </form>
+    <div id="results"></div>
+  <script>
+    //get_colnames
+    d3.json("/get_colnames", function(data) {
+      console.log("start d3.json:get_colnames")
+      console.log("/get_colnames : data:\n", data)
+      console.log("/get_colnames : data.columns:\n", data.columns)
+      console.log("data.columns[0]:", data.columns[0])
+      colnames = []
+      select_column_elem = document.getElementById("select_column")
+      select_column_elem_inner_html = "<option value='' SELECTED>Select Column</option>"
+      for (let i = 0; i < data.columns.length; i++) {
+        colnames.push(data.columns[i])
+        select_column_elem_inner_html += "<option value="+data.columns[i]+">"+data.columns[i]+"</option>"
+      }
+      console.log("colnames:", colnames)
+      select_column_elem.innerHTML = select_column_elem_inner_html
+      //submit button not needed if using onchange on select.
+      submit_button_elem = document.getElementById("submit_button")
+      submit_button_elem.innerHTML = "<input type='submit'>"
+      //now populate select options.
+    });
+    function get_info() {
+      console.log("start:function get_info()")
+      results_elem = document.getElementById("results")
+      results_elem.innerHTML = "obtaining results."
+      select_elem = document.getElementById("select_column")
+      select_elem_value = select_elem.options[select_elem.selectedIndex].value;
+      console.log("select_elem_value:", select_elem_value)
+      temp_url = "/get_col_unique_2_json/"+select_elem_value
+      console.log("function:get_info():temp_url:", temp_url)
+      d3.json(temp_url, function(data) {
+        console.log("get_info():/get_col_unique_2_json: data:\n", data)
+        console.log("data:keys:", Object.keys(data))
+        keys = Object.keys(data)
+        if (keys.includes('error')){
+          console.log("key=error, try getting max min values.")
+          temp_url = "/get_max_min/"+select_elem_value
+          console.log("function:get_info():temp_url:", temp_url)
+          d3.json(temp_url, function(data) {
+            console.log("get_info():/get_col_unique_2_json: data:\n", data)
+            max = data[select_elem_value]['max']
+            min = data[select_elem_value]['min']
+            console.log("max:", max)
+            console.log("min:", min)
+            results_elem.innerHTML = "max Value : "+String(max)+" min Value : "+String(min)
+          })
+        } else {
+          console.log("error not found in keys")
+          console.log("data["+select_elem_value+"]=", data[select_elem_value])
+          results_elem.innerHTML = "Unique Values = "+data[select_elem_value]
+        }
+      })
+    }
+  </script>
+  </body>
+</html>

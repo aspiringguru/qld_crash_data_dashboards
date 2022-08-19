@@ -1,0 +1,135 @@
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Qld Crash Data.</title>
+    <!--<link rel="stylesheet" href="style.css"> -->
+    <!-- <script src='https://cdn.plot.ly/plotly-2.12.1.min.js'></script>  -->
+    <!-- <script src="https://d3js.org/d3.v4.min.js"></script> -->
+    <script src='/static/plotly-2.12.1.min.js'></script>
+    <script src="/static/d3.v4.min.js"></script>
+    <style>
+      .chart {
+        width:90%;height:70%;
+      }
+    </style>
+  </head>
+  <body>
+    <select id="selectYear" onchange="select_year()">
+      <option value="" selected>Select Year</option>
+    </select>
+
+    <div id='mychart1' class='chart'>Select year to plot.</div>
+    Data Source : <a href="https://www.data.qld.gov.au/dataset/crash-data-from-queensland-roads/resource/f999155b-37f7-48aa-b5dd-644838130b0b">Qld Crash Data</a>
+  <script>
+    d3.json("/get_crash_locations_years", function(data) {
+      console.log("get_crash_locations_years:data.years.length\n", data.years.length)
+      select_elem = document.getElementById("selectYear")
+      years = []
+      for (let i = 0; i < data.years.length; i++) {
+        years.push(data.years[i])
+        select_elem.options[select_elem.options.length] = new Option(data.years[i], data.years[i]);
+      }
+      console.log("get_crash_locations_years:years:", years)
+      document.getElementById("selectYear").focus();
+    });
+    function select_year() {
+      var year_selected = document.getElementById("selectYear").value;
+      console.log("year_selected:", year_selected)
+      if (year_selected!=""){
+        console.log("load data")
+        document.getElementById("mychart1").innerHTML = "year selected. loading data, plotting chart here"
+        json_url = "/get_crash_locations_postcode_by_year/"+year_selected.toString()
+        d3.json(json_url, function(data) {
+          //console.log("data\n", data)
+          //console.log("data.data\n", data.data)
+          console.log("data.data.length\n", data.data.length)
+          count_all=[]
+          count_fatal=[]
+          count_hospitalisation=[]
+          count_medical=[]
+          count_minor=[]
+          count_property=[]
+          post_code=[]
+          for (let i = 0; i < data.data.length; i++) {
+            //console.log(data.data[i])
+            count_all.push(data.data[i]['count_all'])
+            count_fatal.push(data.data[i]['count_fatal'])
+            count_hospitalisation.push(data.data[i]['count_hospitalisation'])
+            count_medical.push(data.data[i]['count_medical'])
+            count_minor.push(data.data[i]['count_minor'])
+            count_property.push(data.data[i]['count_property'])
+            post_code.push(data.data[i]['post_code'])
+          };
+          console.log("count_all:", count_all)
+          console.log("count_fatal:", count_fatal)
+          console.log("count_hospitalisation:", count_hospitalisation)
+          console.log("count_medical:", count_medical)
+          console.log("count_minor:", count_minor)
+          console.log("count_property:", count_property)
+          console.log("post_code:", post_code)
+          console.log("count_all.length:", count_all.length)
+          console.log("count_fatal.length:", count_fatal.length)
+          console.log("count_hospitalisation.length:", count_hospitalisation.length)
+          console.log("count_medical.length:", count_medical.length)
+          console.log("count_minor.length:", count_minor.length)
+          console.log("count_property.length:", count_property.length)
+          console.log("post_code.length:", post_code.length)
+          //
+          var trace1 = {
+              x: post_code,
+              y: count_fatal,
+              name: 'Fatalities',
+              type: 'bar'
+          };
+          //
+          var trace2 = {
+              x: post_code,
+              y: count_hospitalisation,
+              name: 'Hospitalisations',
+              type: 'bar'
+          };
+          //
+          var trace3 = {
+              x: post_code,
+              y: count_medical,
+              name: 'Medical Treatement',
+              type: 'bar'
+          };
+          //
+          var trace4 = {
+              x: post_code,
+              y: count_minor,
+              name: 'Minor Injuries',
+              type: 'bar'
+          };
+          //
+          var trace5 = {
+              x: post_code,
+              y: count_property,
+              name: 'Property Damage Only',
+              type: 'bar'
+          };
+          //
+          //
+          var plot_data = [trace1, trace2, trace3, trace4, trace5];
+          var layout = {barmode: 'stack',
+            xaxis: {
+              title: { text: 'PostCodes', },
+            },
+            yaxis: {
+              title: { text: 'Crashes by Postcode (see legend for categories).', }
+            }
+          };
+          document.getElementById("mychart1").innerHTML = ""
+          //nb: Plotly.newPlot has to be the last action within d3.json.
+          document.getElementById("selectYear").focus();
+          Plotly.newPlot('mychart1', plot_data,  layout);
+        });//end d3.json loading
+      } else {
+        console.log("blank selected. do nothing. prompt user to select year.")
+      }
+    }
+
+  </script>
+  </body>
+</html>

@@ -1,0 +1,24 @@
+https://www.sqlitetutorial.net/sqlite-import-csv/
+
+d:
+cd D:\2020\coding\dashboard_demos\
+dir *.csv
+
+sqlite3 crash_data_queensland.db
+.mode csv
+.import crash_data_queensland_1_crash_locations.csv crash_locations
+select count(*) from crash_locations;
+.schema crash_locations
+
+.import crash_data_queensland_b_driver_involvement.csv driver_involvement
+select count(*) from driver_involvement;
+
+.import crash_data_queensland_c_restraint_helmet_use.csv restraint_helmet_use
+select count(*) from restraint_helmet_use;
+
+.import crash_data_queensland_d_vehicle_involvement.csv vehicle_involvement
+select count(*) from vehicle_involvement;
+
+.import crash_data_queensland_e_alcohol_speed_fatigue_defect.csv alcohol_speed_fatigue_defect
+select count(*) from alcohol_speed_fatigue_defect;
+.schema alcohol_speed_fatigue_defect
