@@ -1,0 +1,12 @@
+get lat, lon and address for schools.
+search crash_locations dataset for accidents within x distance of schools lat & lon.
+search crash_locations dataset for accidents within x distance of schools address.
+
+get traffic survey data.
+compare traffic survey data with crash locations.
+
+
+https://www.data.qld.gov.au/dataset/traffic-census-for-the-queensland-state-declared-road-network
+
+stacked bar plot plot of traffic control devices vs types of accidents (injury vs fatal)
+crash_locations.Crash_Traffic_Control

@@ -1,0 +1,27 @@
+https://towardsdatascience.com/making-heat-maps-with-literal-maps-how-to-use-python-to-construct-a-chloropleth-6b65e4e33905
+generates heat map - color coding suburbs by count within suburb.
+
+
+https://towardsdatascience.com/clustering-geospatial-data-f0584f0b04ec
+uses folium maps > https://python-visualization.github.io/folium/quickstart.html#Getting-Started
+
+various methods
+- K-Means aims to partition the observations into a predefined number of clusters (k) in which each point belongs to the cluster with the nearest mean.
+- Self Organizing Maps (SOMs)
+- Affinity Propagation is a graph-based algorithm that assigns each observation to its nearest exemplar.
+-
+
+
+
+https://machinelearningmastery.com/clustering-algorithms-with-python/
+
+
+
+https://scikit-learn.org/stable/modules/clustering.html
+Affinity Propagation has a time complexity of the order O(N^2T) N=# of samples, T=# of iterations until convergance
+
+
+https://stackoverflow.com/questions/29545704/fast-haversine-approximation-python-pandas
+
+
+https://www.qld.gov.au/environment/land/title/addressing/geocoder

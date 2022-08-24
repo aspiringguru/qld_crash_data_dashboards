@@ -1,0 +1,293 @@
+<!-- get_html/traffic_census_user.html -->
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Qld Crash Data.</title>
+    <!--<link rel="stylesheet" href="style.css"> -->
+    <!-- <script src='https://cdn.plot.ly/plotly-2.12.1.min.js'></script>  -->
+    <!-- <script src="https://d3js.org/d3.v4.min.js"></script> -->
+    <script src='/static/plotly-2.12.1.min.js'></script>
+    <script src="/static/d3.v4.min.js"></script>
+    <style>
+      #map {
+        height: 400px;
+        width: 80%;
+      }
+      .chart {
+        width:90%;height:70%;
+      }
+      table,
+        table td {
+          border: 1px solid #cccccc;
+        }
+
+        td {
+          height: 80px;
+          width: 160px;
+          text-align: center;
+          vertical-align: middle;
+        }
+    </style>
+  </head>
+  <body>
+    <hr>
+    <div>Users location</div>
+    <div id="user_lat"></div>
+    <div id="user_lon"></div>
+    <div id="address.city"></div>
+    <div id="address.city_district"></div>
+    <div id="address.house_number"></div>
+    <div id="address.road"></div>
+    <div id="address.state"></div>
+    <div id="address.postcode"></div>
+    <hr>
+    <div id="map"></div>
+    <div id="marker.latitude"></div>
+    <div id="marker.longitude"></div>
+    <div id="marker.city"></div>
+    <div id="marker.city_district"></div>
+    <!-- <div id="marker.house_number"></div> -->
+    <div id="marker.road"></div>
+    <div id="marker.state"></div>
+    <div id="marker.postcode"></div>
+    <hr>
+    <div>
+      <table id="marker_data_tbl">
+    </table>
+    <div>
+      <table id="crash_data_tbl">
+    </table>
+    </div>
+     <a href="https://austroads.com.au/publications/pavement/agpt04k/austroads-vehicle-classification">austroads-vehicle-classification</a>
+     <a href="https://www.dit.sa.gov.au/__data/assets/pdf_file/0008/526652/austroads_classes.pdf">austroads-vehicle-classification</a>
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBA4xm5cTmRRryEh1rs0mSKHBpTnZuR-rs&v=weekly"
+     defer >
+    </script>
+    <script>
+      var user_lat_elem = document.getElementById("user_lat");
+      var user_lon_elem = document.getElementById("user_lon");
+      var address_city_elem = document.getElementById("address.city");
+      var address_city_district_elem = document.getElementById("address.city_district");
+      var address_house_number_elem = document.getElementById("address.house_number");
+      var address_road_elem = document.getElementById("address.road");
+      var address_state_elem = document.getElementById("address.state");
+      var address_postcode_elem = document.getElementById("address.postcode");
+      //
+      var marker_longitude_elem = document.getElementById("marker.longitude");
+      var marker_latitude_elem = document.getElementById("marker.latitude");
+      var marker_city_elem = document.getElementById("marker.city");
+      var marker_city_district_elem = document.getElementById("marker.city_district");
+      //var marker_house_number_elem = document.getElementById("marker.house_number");
+      var marker_road_elem = document.getElementById("marker.road");
+      var marker_state_elem = document.getElementById("marker.state");
+      var marker_postcode_elem = document.getElementById("marker.postcode");
+      // these are deliberate invalid values
+      var user_lat = 91
+      var user_lon = 181
+      var traffic_census_data =  []
+      var lat_min = 91
+      var lat_max = -91
+      var lon_min = 181
+      var lon_max = -181
+      //
+      //
+      function get_marker_details(i) {
+        //called when user clicks on marker, retrieves data for that marker.
+        console.log("get_marker_details:start:i=", i.toString())
+        console.log("traffic_census_data["+i.toString()+"]="+traffic_census_data[i])
+        marker_latitude = traffic_census_data[i]['LATITUDE']
+        marker_longitude = traffic_census_data[i]['LONGITUDE']
+        //construct url, call url, extract address from response and update dom to show address retrieved.
+        url_temp = "/get_users_address/"+marker_latitude+"/"+marker_longitude
+        console.log("url_temp:", url_temp)
+        d3.json(url_temp, function(data) {
+          console.log("get_users_address:data\n", data)
+          console.log("get_users_address:data.address\n", data.address)
+          console.log("get_users_address:data.address.city\n", data.address.city)
+          console.log("get_users_address:data.address.city_district\n", data.address.city_district)
+          console.log("get_users_address:data.address.house_number\n", data.address.house_number)
+          console.log("get_users_address:data.address.road\n", data.address.road)
+          console.log("get_users_address:data.address.state\n", data.address.state)
+          console.log("get_users_address:data.address.postcode\n", data.address.postcode)
+          marker_latitude_elem.innerHTML = "latitude: " + marker_latitude;
+          marker_longitude_elem.innerHTML = "longitude: " + marker_longitude;
+          marker_city_elem.innerHTML = "city: " + data.address.city;
+          marker_city_district_elem.innerHTML = "city_district: " + data.address.city_district;
+          //marker_house_number_elem.innerHTML = "house_number: " + data.address.house_number;
+          marker_road_elem.innerHTML = "road: " + data.address.road;
+          marker_state_elem.innerHTML = "state: " + data.address.state;
+          marker_postcode_elem.innerHTML = "postcode: " + data.address.postcode;
+        })
+        //
+        console.log("marker_latitude:", marker_latitude)
+        console.log("marker_longitude:", marker_longitude)
+        colnames = Object.keys(traffic_census_data[i])
+        const tbl = document.getElementById("marker_data_tbl")
+        tbl.innerHTML = ""
+        for (let j = 0; j < colnames.length; j++) {
+          const tr = tbl.insertRow();
+          const td1 = tr.insertCell();
+          const td2 = tr.insertCell();
+          /*
+          if (Object.keys(vehic_survey_codes).includes(colnames[j])) {
+            td_text = colnames[j] + vehic_survey_codes[colnames[j]]
+          } else {
+            td_text = colnames[j]
+          }
+          */
+          td_text = colnames[j]
+          td1.appendChild(document.createTextNode(td_text));
+          if (colnames[j]=='REPORT_LINK') {
+            var td_href=document.createElement("a");
+            td_href.href=traffic_census_data[i][colnames[j]];
+            td_href.innerHTML = 'pdf report';
+            td_href.target="_blank"
+            td2.appendChild(td_href);
+          } else {
+            td_text = traffic_census_data[i][colnames[j]]
+            td2.appendChild(document.createTextNode(td_text))
+          }
+        }
+      }//end function get_marker_details(i)
+      //
+      function latRad(lat) {
+        var sin = Math.sin(lat * Math.PI / 180);
+        var radX2 = Math.log((1 + sin) / (1 - sin)) / 2;
+        return Math.max(Math.min(radX2, Math.PI), -Math.PI) / 2;
+      }
+      //
+      function getZoom(lat_a, lng_a, lat_b, lng_b) {
+            let latDif = Math.abs(latRad(lat_a) - latRad(lat_b))
+            let lngDif = Math.abs(lng_a - lng_b)
+            let latFrac = latDif / Math.PI
+            let lngFrac = lngDif / 360
+            let lngZoom = Math.log(1/latFrac) / Math.log(2)
+            let latZoom = Math.log(1/lngFrac) / Math.log(2)
+            return Math.min(lngZoom, latZoom)
+      }
+      //
+
+      // todo : follow this practice https://web.dev/geolocation-on-start/
+      // change to user action to request user position.
+      // or provide option for user to enter postcode, then filter traffic census for that postcode.
+      if (navigator.geolocation) {
+        //this runs dueing pageload.
+        navigator.geolocation.getCurrentPosition(getPos);
+      }
+      function getPos(position) {
+        user_lat = position.coords.latitude
+        user_lat_elem.innerHTML = "Latitude: " + user_lat
+        user_lon = position.coords.longitude
+        user_lon_elem.innerHTML = "Longitude: " + user_lon;
+        url_temp = "/get_users_address/"+position.coords.latitude+"/"+position.coords.longitude
+        console.log("url_temp:", url_temp)
+        d3.json(url_temp, function(data) {
+          console.log("get_users_address:data\n", data)
+          console.log("get_users_address:data.address\n", data.address)
+          console.log("get_users_address:data.address.city\n", data.address.city)
+          console.log("get_users_address:data.address.city_district\n", data.address.city_district)
+          console.log("get_users_address:data.address.house_number\n", data.address.house_number)
+          console.log("get_users_address:data.address.road\n", data.address.road)
+          console.log("get_users_address:data.address.state\n", data.address.state)
+          console.log("get_users_address:data.address.postcode\n", data.address.postcode)
+          address_city_elem.innerHTML = "city: " + data.address.city;
+          address_city_district_elem.innerHTML = "city_district: " + data.address.city_district;
+          address_house_number_elem.innerHTML = "house_number: " + data.address.house_number;
+          address_road_elem.innerHTML = "road: " + data.address.road;
+          address_state_elem.innerHTML = "state: " + data.address.state;
+          address_postcode_elem.innerHTML = "postcode: " + data.address.postcode;
+        })
+        //get traffic census for the users lat:lon
+        // /get_traffic_survey_near_user/<my_lat>/<my_lon>/<num_records>
+        url_temp2 = "/get_traffic_survey_near_user/"+user_lat+"/"+user_lon+"/50"
+        d3.json(url_temp2, function(data) {
+          console.log("url_temp2:", url_temp2)
+          console.log("get_traffic_survey_near_user:data\n", data)
+          //now plot data onto map
+          traffic_census_data = data.data
+          marker_points = []
+          //find max & min lat:lon, create list of marker points.
+          for (let i = 0; i < traffic_census_data.length; i++) {
+            //calc max/min lat/lon here.
+            if (lat_min>traffic_census_data[i]['LATITUDE']){
+              lat_min=traffic_census_data[i]['LATITUDE']
+            }
+            if (lat_max<traffic_census_data[i]['LATITUDE']){
+              lat_max=traffic_census_data[i]['LATITUDE']
+            }
+            if (lon_min>traffic_census_data[i]['LONGITUDE']){
+              lon_min=traffic_census_data[i]['LONGITUDE']
+            }
+            if (lon_max<traffic_census_data[i]['LONGITUDE']){
+              lon_max=traffic_census_data[i]['LONGITUDE']
+            }
+            //create marker point lat, lon
+            marker_point = { lat: traffic_census_data[i]['LATITUDE'], lng: traffic_census_data[i]['LONGITUDE'] };
+            marker_points.push(marker_point)
+          }//end for loop
+          lat_mid = (lat_min+lat_max)/2
+          lon_mid = (lon_min+lon_max)/2
+          console.log("lat_min:", lat_min)
+          console.log("lat_max:", lat_max)
+          console.log("lon_min:", lon_min)
+          console.log("lon_max:", lon_max)
+          console.log("lat_mid:", lat_mid)
+          console.log("lon_mid:", lon_mid)
+          var zoom_calcd = getZoom(lat_min, lon_min, lat_max, lon_max)
+          console.log("zoom_calcd:", zoom_calcd)
+          //
+          const map_center = { lat: lat_mid, lng: lon_mid };
+          // initialise map using centerpoint and zoom calculated.
+          const map = new google.maps.Map(document.getElementById("map"), {
+            zoom: zoom_calcd,
+            center: map_center,
+          });
+          // add marker points to map.
+          for (let i = 0; i < marker_points.length; i++) {
+            const marker = new google.maps.Marker({
+              position: marker_points[i],
+              map: map,
+              title: traffic_census_data[i]['DESCRIPTION'],
+              aadt: traffic_census_data[i]['AADT'],
+              index: i
+            });
+            google.maps.event.addListener(marker, 'click', function() {
+                console.log("3:marker clicked : title: ", this.title);
+                console.log("3:marker clicked : aadt: ", this.aadt);
+                console.log("3:marker clicked : position: ", this.position);
+                console.log("3:marker clicked : index: ", this.index);
+                get_marker_details(this.index)
+            });
+          }//end for loop
+          //add marker for users position.
+          if (user_lat == 91 || user_lon == 181){
+            //check user_lat & user_lon have been updated from initial values.
+            user_lat = position.coords.latitude
+            user_lon = position.coords.longitude
+          }
+          marker_point = { lat: user_lat, lng: user_lon };
+          const icon = {
+              url: "/static/icons/maps_home.png", // url
+              scaledSize: new google.maps.Size(50, 50), // scaled size
+              origin: new google.maps.Point(0,0), // origin
+              anchor: new google.maps.Point(0, 0) // anchor
+          };
+          const marker = new google.maps.Marker({
+              position: marker_point,
+              map: map,
+              title: "users location",
+              aadt: -1,
+              index: -1,
+	            icon: icon
+            });
+            google.maps.event.addListener(marker, 'click', function() {
+                console.log("users marker clicked. ")
+                console.log("3:marker clicked : title: ", this.title);
+                console.log("3:marker clicked : position: ", this.position);
+            });
+
+        })// end d3.json(url_temp2
+      }
+    </script>
+   </body>
+ </html>

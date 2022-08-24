@@ -11,10 +11,14 @@ from pandas.api.types import is_numeric_dtype
 from pandas.api.types import is_string_dtype
 import json
 from config import *
+import time
+import numpy as np
+from geopy.geocoders import Nominatim
+from math import radians, cos, sin, asin, acos, sqrt, pi
 
 app = Flask(__name__)
 
-input_data_fn = "crash_data_queensland_b_driver_involvement.csv"
+input_data_fn = INPUT_DATA_FN
 df = pd.read_csv(input_data_fn)
 print("startup : df.shape:", df.shape)
 
@@ -31,11 +35,6 @@ print("crash locations data loaded.")
 print("df_years_post_codes_summary.shape:", df_years_post_codes_summary.shape)
 print("df_years_post_codes_summary.columns:", df_years_post_codes_summary.columns)
 
-df_years_post_codes_summary = pd.read_pickle(output_fn_crash_locations_crash_severity)
-print("crash locations data loaded.")
-print("df_years_post_codes_summary.shape:", df_years_post_codes_summary.shape)
-print("df_years_post_codes_summary.columns:", df_years_post_codes_summary.columns)
-
 output_fn_crash_locations_vehicle_type_year_postcode_sums = OUTPUT_FN_CRASH_LOCATIONS_VEHICLE_TYPE_YEAR_POSTCODE
 df_years_post_codes_vehicle_type = pd.read_pickle(output_fn_crash_locations_vehicle_type_year_postcode_sums)
 print("df_years_post_codes_vehicle_type.shape:", df_years_post_codes_vehicle_type.shape)
@@ -45,6 +44,117 @@ output_fn_alcohol_speed_fatigue_defect = OUTPUT_FN_ALCOHOL_SPEED_FATIGUE_DEFECT
 df_alcohol_speed_fatigue_defect = pd.read_pickle(output_fn_alcohol_speed_fatigue_defect)
 print("df_alcohol_speed_fatigue_defect.shape:",   df_alcohol_speed_fatigue_defect.shape)
 print("df_alcohol_speed_fatigue_defect.columns:", df_alcohol_speed_fatigue_defect.columns)
+
+input_fn_traffic_census_2020 = INPUT_FN_TRAFFIC_CENSUS_2020
+df_traffic_census_2020 = pd.read_csv(input_fn_traffic_census_2020)
+print("df_traffic_census_2020.shape:", df_traffic_census_2020.shape)
+print("df_traffic_census_2020.columns:", df_traffic_census_2020.columns)
+
+
+#@app.route('/get_crash_locations_postcode_by_year/<year>')
+#def get_crash_locations_postcode_by_year(year):
+#    print("route:get_crash_locations_postcode_by_year:year:", year)
+
+@app.route('/get_users_address/<my_lat>/<my_lon>')
+def get_users_address(my_lat, my_lon):
+    print("@app.route:/get_users_address:my_lat:", my_lat)
+    print("@app.route:/get_users_address:my_lon:", my_lon)
+    app = Nominatim(user_agent="peerbanking.com.au")
+    coordinates = f"{my_lat}, {my_lon}"
+    language="en"
+    try:
+        time.sleep(1) #good usage policy. avoid overuse.
+        results = app.reverse(coordinates, language=language).raw
+        #results['address']['house_number']
+        #results['address']['road']
+        #results['address']['city_district']
+        #results['address']['city']
+        #results['address']['state']
+        return results
+    except:
+        return { "error":"error"}
+
+def haversine_np(lon1, lat1, lon2, lat2):
+    """
+    Calculate the great circle distance between two points
+    on the earth (specified in decimal degrees)
+    All args must be of equal length.
+    """
+    #print("haversine_np:type(lon1)", type(lon1))
+    #print("haversine_np:type(lat1)", type(lat1))
+    #print("haversine_np:type(lon2)", type(lon2))
+    #print("haversine_np:type(lat2)", type(lat2))
+    lon1, lat1, lon2, lat2 = map(np.radians, [lon1, lat1, lon2, lat2])
+    dlon = lon2 - lon1
+    dlat = lat2 - lat1
+    a = np.sin(dlat/2.0)**2 + np.cos(lat1) * np.cos(lat2) * np.sin(dlon/2.0)**2
+    c = 2 * np.arcsin(np.sqrt(a))
+    km = 6367 * c
+    return km
+
+def calculate_spherical_distance(lon1, lat1, lon2, lat2):
+    # from https://towardsdatascience.com/finding-distance-between-two-latitudes-and-longitudes-in-python-43e92d6829ff
+    # https://en.wikipedia.org/wiki/Haversine_formula
+    r=6371
+    # Convert degrees to radians
+    coordinates = lat1, lon1, lat2, lon2
+    # radians(c) is same as c*pi/180
+    phi1, lambda1, phi2, lambda2 = [
+        radians(c) for c in coordinates
+    ]
+    # Apply the haversine formula
+    a = (np.square(sin((phi2-phi1)/2)) + cos(phi1) * cos(phi2) *
+         np.square(sin((lambda2-lambda1)/2)))
+    d = 2*r*asin(np.sqrt(a))
+    return d
+
+
+@app.route('/get_traffic_survey_near_user/<my_lat>/<my_lon>/<num_records>')
+def get_traffic_survey_near_user(my_lat, my_lon, num_records):
+    #print("@app.route:/get_traffic_survey_near_user:my_lat:", my_lat)
+    #print("@app.route:/get_traffic_survey_near_user:my_lon:", my_lon)
+    #print("@app.route:/get_traffic_survey_near_user:type(my_lat):", type(my_lat))
+    #print("@app.route:/get_traffic_survey_near_user:type(my_lon):", type(my_lon))
+    #print("@app.route:/get_traffic_survey_near_user:num_records:", num_records)
+    #print("@app.route:/get_traffic_survey_near_user:df_traffic_census_2020.shape:", df_traffic_census_2020.shape)
+    my_lon = float(my_lon)
+    my_lat = float(my_lat)
+    num_records = int(num_records)
+    #
+    if 'distance' in list(df_traffic_census_2020.columns):
+        df_traffic_census_2020.drop('distance', axis=1, inplace=True)
+    if 'distance' not in list(df_traffic_census_2020.columns):
+        df_traffic_census_2020['distance']=-1
+    """
+    if 'distance2' in list(df_traffic_census_2020.columns):
+        df_traffic_census_2020.drop('distance2', axis=1, inplace=True)
+    if 'distance2' not in list(df_traffic_census_2020.columns):
+        df_traffic_census_2020['distance2']=-1
+    """
+    tic = time.perf_counter()
+    for ind in df_traffic_census_2020.index:
+        lon2 = df_traffic_census_2020.loc[ind, 'LONGITUDE']
+        lat2 = df_traffic_census_2020.loc[ind, 'LATITUDE']
+        km = haversine_np(my_lon, my_lat, lon2, lat2)
+        df_traffic_census_2020.loc[ind,"distance"] = km
+        #km2 = calculate_spherical_distance(my_lon, my_lat, lon2, lat2)
+        #df_traffic_census_2020.loc[ind,"distance2"] = km2
+    #
+    toc = time.perf_counter()
+    print(f"distance columne added : processed in {toc - tic:0.4f} seconds")
+    #processed in 0.2674 seconds
+    tic = time.perf_counter()
+    df_traffic_census_2020.sort_values(['distance'], ascending=True, inplace=True)
+    toc = time.perf_counter()
+    print(f"sorted by distance columns : processed in {toc - tic:0.4f} seconds")
+    return json.loads(df_traffic_census_2020.iloc[0:num_records].to_json(orient="table"))
+
+
+@app.route('/get_traffic_survey_2020')
+def get_traffic_survey_2020():
+    print("@app.route:/get_traffic_survey_2020:df_traffic_census_2020.shape:", df_traffic_census_2020.shape)
+    return json.loads(df_traffic_census_2020.to_json(orient="table"))
+
 
 @app.route('/get_alcohol_speed_fatigue_defect')
 def get_alcohol_speed_fatigue_defect():

@@ -1,0 +1,229 @@
+<!-- get_html/traffic_census_2020.html -->
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Qld Crash Data.</title>
+    <!--<link rel="stylesheet" href="style.css"> -->
+    <!-- <script src='https://cdn.plot.ly/plotly-2.12.1.min.js'></script>  -->
+    <!-- <script src="https://d3js.org/d3.v4.min.js"></script> -->
+    <script src='/static/plotly-2.12.1.min.js'></script>
+    <script src="/static/d3.v4.min.js"></script>
+    <style>
+      #map {
+        height: 400px;
+        width: 50%;
+      }
+      .chart {
+        width:90%;height:70%;
+      }
+      table,
+        table td {
+          border: 1px solid #cccccc;
+        }
+
+        td {
+          height: 80px;
+          width: 160px;
+          text-align: center;
+          vertical-align: middle;
+        }
+    </style>
+  </head>
+  <body>
+    <div id="lat_long"></div>
+    <div id="map"></div>
+    <div>
+      <table id="marker_data_tbl">
+    </table>
+    <div>
+      <table id="crash_data_tbl">
+    </table>
+    </div>
+     <a href="https://austroads.com.au/publications/pavement/agpt04k/austroads-vehicle-classification">austroads-vehicle-classification</a>
+     <a href="https://www.dit.sa.gov.au/__data/assets/pdf_file/0008/526652/austroads_classes.pdf">austroads-vehicle-classification</a>
+    <!-- this api key belongs to user ivansrijith, created on Aug 21, 2022, name='API key 2' -->
+  <script
+    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBA4xm5cTmRRryEh1rs0mSKHBpTnZuR-rs&v=weekly"
+    defer >
+  </script>
+
+  <script>
+    var traffic_census_data = []
+    var colnames = []
+    var users_lon = 181
+    var users_lat = -91
+    var lat_min = 91
+    var lat_max = -91
+    var lon_min = 181
+    var lon_max = -181
+    var vehic_survey_codes = {
+        "PC_CLASS_0A":"Light vehicles",
+        "PC_CLASS_0B":"Heavy vehicles",
+        "PC_CLASS_1A":"Short vehicles",
+        "PC_CLASS_1B":"Truck or bus",
+        "PC_CLASS_1C":"Articulated vehicles",
+        "PC_CLASS_1D":"Road train",
+        "PC_CLASS_2A":"Short 2 axle vehicles",
+        "PC_CLASS_2B":"Short vehicles towing",
+        "PC_CLASS_2C":"2 axle truck or bus",
+        "PC_CLASS_2D":"3 axle truck or bus",
+        "PC_CLASS_2E":"4 axle truck",
+        "PC_CLASS_2F":"3 axle articulated vehicle",
+        "PC_CLASS_2G":"4 axle articulated vehicle",
+        "PC_CLASS_2H":"5 axle articulated vehicle",
+        "PC_CLASS_2I":"6 axle articulated vehicle",
+        "PC_CLASS_2J":"B double",
+        "PC_CLASS_2K":"Double road train",
+        "PC_CLASS_2L":"Triple road train",
+      }
+    //console.log("vehic_survey_codes:", vehic_survey_codes)
+    function getLocation() {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(showPosition);
+      } else {
+        x.innerHTML = "Geolocation is not supported by this browser.";
+      }
+    }
+    //
+    function showPosition(position) {
+      var x = document.getElementById("lat_long");
+      x.innerHTML = "Latitude: " + position.coords.latitude +
+      "<br>Longitude: " + position.coords.longitude;
+      users_lon = position.coords.longitude
+      users_lat = position.coords.latitude
+    }
+    //
+    function get_marker_details(i) {
+      console.log("get_marker_details:start:i=", i.toString())
+      console.log("traffic_census_data["+i.toString()+"]="+traffic_census_data[i])
+      colnames = Object.keys(traffic_census_data[i])
+      const tbl = document.getElementById("marker_data_tbl")
+      tbl.innerHTML = ""
+      for (let j = 0; j < colnames.length; j++) {
+        const tr = tbl.insertRow();
+        const td1 = tr.insertCell();
+        const td2 = tr.insertCell();
+        /*
+        if (Object.keys(vehic_survey_codes).includes(colnames[j])) {
+          td_text = colnames[j] + vehic_survey_codes[colnames[j]]
+        } else {
+          td_text = colnames[j]
+        }*/
+        td_text = colnames[j]
+        td1.appendChild(document.createTextNode(td_text));
+        if (colnames[j]=='REPORT_LINK') {
+          var td_href=document.createElement("a");
+          td_href.href=traffic_census_data[i][colnames[j]];
+          td_href.innerHTML = 'pdf report';
+          td_href.target="_blank"
+          td2.appendChild(td_href);
+        } else {
+          td_text = traffic_census_data[i][colnames[j]]
+          td2.appendChild(document.createTextNode(td_text))
+        }
+      }
+    }
+    //
+    function latRad(lat) {
+      var sin = Math.sin(lat * Math.PI / 180);
+      var radX2 = Math.log((1 + sin) / (1 - sin)) / 2;
+      return Math.max(Math.min(radX2, Math.PI), -Math.PI) / 2;
+    }
+    //
+    function getZoom(lat_a, lng_a, lat_b, lng_b) {
+          let latDif = Math.abs(latRad(lat_a) - latRad(lat_b))
+          let lngDif = Math.abs(lng_a - lng_b)
+          let latFrac = latDif / Math.PI
+          let lngFrac = lngDif / 360
+          let lngZoom = Math.log(1/latFrac) / Math.log(2)
+          let latZoom = Math.log(1/lngFrac) / Math.log(2)
+          return Math.min(lngZoom, latZoom)
+    }
+    //
+    d3.json("/get_traffic_survey_2020", function(data) {
+      console.log("traffic_census_2020:get_traffic_survey_2020:data.data.length\n", data.data.length)
+      //console.log("traffic_census_2020:get_traffic_survey_2020:data.data\n", data.data)
+      traffic_census_data = data.data
+      colnames = Object.keys(traffic_census_data[0])
+      const tbl = document.getElementById("crash_data_tbl")
+      const tr = tbl.insertRow();
+      for (let i = 0; i < colnames.length; i++) {
+        const td = tr.insertCell();
+        //console.log("inserting text into td: ", colnames[i])
+        td.appendChild(document.createTextNode(colnames[i]))
+      }
+      marker_points = []
+      for (let i = 0; i < traffic_census_data.length; i++) {
+      //for (let i = 1; i < 10; i++) {
+        const tr = tbl.insertRow();
+        //console.log("traffic_census_data["+i.toString()+"]:", traffic_census_data[i])
+        for (let j = 0; j < colnames.length; j++) {
+          const td = tr.insertCell();
+          //
+          if (colnames[j]=='REPORT_LINK') {
+            var td_href=document.createElement("a");
+            td_href.href=traffic_census_data[i][colnames[j]];
+            td_href.innerHTML = 'pdf report';
+            td_href.target="_blank"
+            td.appendChild(td_href);
+          } else {
+            td.appendChild(document.createTextNode(traffic_census_data[i][colnames[j]]))
+          }
+        }
+        //calc max/min lat/lon here.
+        if (lat_min>traffic_census_data[i]['LATITUDE']){
+          lat_min=traffic_census_data[i]['LATITUDE']
+        }
+        if (lat_max<traffic_census_data[i]['LATITUDE']){
+          lat_max=traffic_census_data[i]['LATITUDE']
+        }
+        if (lon_min>traffic_census_data[i]['LONGITUDE']){
+          lon_min=traffic_census_data[i]['LONGITUDE']
+        }
+        if (lon_max<traffic_census_data[i]['LONGITUDE']){
+          lon_max=traffic_census_data[i]['LONGITUDE']
+        }
+        //create marker point lat, lon
+        marker_point = { lat: traffic_census_data[i]['LATITUDE'], lng: traffic_census_data[i]['LONGITUDE'] };
+        marker_points.push(marker_point)
+      }
+      lat_mid = (lat_min+lat_max)/2
+      lon_mid = (lon_min+lon_max)/2
+      console.log("lat_min:", lat_min)
+      console.log("lat_max:", lat_max)
+      console.log("lon_min:", lon_min)
+      console.log("lon_max:", lon_max)
+      console.log("lat_mid:", lat_mid)
+      console.log("lon_mid:", lon_mid)
+      var zoom_calcd = getZoom(lat_min, lon_min, lat_max, lon_max)
+      console.log("zoom_calcd:", zoom_calcd)
+      //
+      const map_center = { lat: lat_mid, lng: lon_mid };
+      // The map, centered at Uluru
+      const map = new google.maps.Map(document.getElementById("map"), {
+        zoom: zoom_calcd,
+        center: map_center,
+      });
+      // add marker points to map.
+      for (let i = 0; i < marker_points.length; i++) {
+        const marker = new google.maps.Marker({
+          position: marker_points[i],
+          map: map,
+          title: traffic_census_data[i]['DESCRIPTION'],
+          aadt: traffic_census_data[i]['AADT'],
+          index: i
+        });
+        google.maps.event.addListener(marker, 'click', function() {
+            console.log("3:marker clicked : title: ", this.title);
+            console.log("3:marker clicked : aadt: ", this.aadt);
+            console.log("3:marker clicked : position: ", this.position);
+            console.log("3:marker clicked : index: ", this.index);
+            get_marker_details(this.index)
+        });
+      }//end for loop
+      //
+    })
+
+  </script>
+  </body>
+</html>
